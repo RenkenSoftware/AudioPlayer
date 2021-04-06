@@ -8,24 +8,34 @@ MainComponent::MainComponent()
     setSize (800, 600);
 
     addAndMakeVisible(volumeSlider);
-    volumeSlider.setRange(0.0f, 5.0f, 0.1f);
+    volumeSlider.setRange(0.0f, 5.0f);
     volumeSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
     volumeSlider.setValue(1.0f);
     volumeSlider.addListener(this);
+
+    addAndMakeVisible(transportSlider);
+    transportSlider.setRange(0.0, 0.0);
+    transportSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
+    transportSlider.setValue(0.0);
+    transportSlider.setEnabled(false);
+    transportSlider.addListener(this);
 
     addAndMakeVisible(loadButton);
     loadButton.setButtonText("Load Audio File");
     loadButton.addListener(this);
 
     addAndMakeVisible(playButton);
+    playButton.setEnabled(false);
     playButton.setButtonText("Play");
     playButton.addListener(this);
 
     addAndMakeVisible(stopButton);
+    stopButton.setEnabled(false);
     stopButton.setButtonText("Stop");
     stopButton.addListener(this);
 
     addAndMakeVisible(pauseButton);
+    pauseButton.setEnabled(false);
     pauseButton.setButtonText("Pause");
     pauseButton.addListener(this);
 
@@ -91,12 +101,13 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     }
 
     transportSource.getNextAudioBlock(bufferToFill);
+    transportSlider.setValue(transportSource.getCurrentPosition());
 
     for (int i = 0; i < bufferToFill.buffer->getNumChannels(); i++)
     {
         for (int j = 0; j < bufferToFill.numSamples; j++)
         {
-            bufferToFill.buffer->setSample(i, j, bufferToFill.buffer->getSample(i, j) * volume);
+            bufferToFill.buffer->setSample(i, j, bufferToFill.buffer->getSample(i, j));
         }
     }
 }
@@ -125,18 +136,19 @@ void MainComponent::resized()
     // If you add any child components, this is where you should
     // update their positions.
     
-    loadButton.setBounds(50, 50, 200, 50);
-    playButton.setBounds(50, 150, 200, 50);
-    stopButton.setBounds(50, 250, 200, 50);
-    pauseButton.setBounds(50, 350, 200, 50);
-    message.setBounds(300, 50, 200, 50);
-    volumeSlider.setBounds(50, 450, 200, 50);
+    loadButton.setBounds(10, 10, 100, 30);
+    playButton.setBounds(120, 560, 70, 30);
+    stopButton.setBounds(280, 560, 70, 30);
+    pauseButton.setBounds(200, 560, 70, 30);
+    message.setBounds(10, 560, 100, 30);
+    volumeSlider.setBounds(420, 560, 370, 30);
+    transportSlider.setBounds(40, 520, 750, 30);
 }
 
 void MainComponent::buttonClicked(Button* pButton)
 {
     if (pButton == &loadButton) {
-        FileChooser chooser("Select a .wav file to play.", {}, "*.wav;*.mp3");
+        FileChooser chooser("Select an audio file.", {}, "*.wav;*.mp3");
         if (chooser.browseForFileToOpen())
         {
             auto file = chooser.getResult();
@@ -148,6 +160,9 @@ void MainComponent::buttonClicked(Button* pButton)
                 playButton.setEnabled(true);
                 readerSource.reset(newSource.release());
                 fileLoaded = true;
+                playButton.setEnabled(true);
+                transportSlider.setRange(0.0, transportSource.getLengthInSeconds());
+                transportSlider.setEnabled(true);
                 message.setText("File loaded!", dontSendNotification);
             }
             else {
@@ -161,6 +176,9 @@ void MainComponent::buttonClicked(Button* pButton)
         {
             message.setText("Playing", dontSendNotification);
             playing = true;
+            stopButton.setEnabled(true);
+            pauseButton.setEnabled(true);
+            playButton.setEnabled(false);
             transportSource.start();
         }
         
@@ -170,7 +188,11 @@ void MainComponent::buttonClicked(Button* pButton)
         {
             message.setText("Stopped", dontSendNotification);
             playing = false;
+            stopButton.setEnabled(false);
+            pauseButton.setEnabled(false);
+            playButton.setEnabled(true);
             transportSource.setPosition(0.0);
+            transportSlider.setValue(0.0);
         }
     }
     else if (pButton == &pauseButton) {
@@ -178,6 +200,9 @@ void MainComponent::buttonClicked(Button* pButton)
         {
             message.setText("Paused", dontSendNotification);
             playing = false;
+            playButton.setEnabled(true);
+            pauseButton.setEnabled(false);
+            stopButton.setEnabled(false);
             transportSource.stop();
         }
     }
@@ -187,6 +212,11 @@ void MainComponent::sliderValueChanged(Slider* slider)
 {
     if (slider == &volumeSlider)
     {
-        volume = slider->getValue();
+        transportSource.setGain(slider->getValue());
+    }
+
+    if (slider == &transportSlider)
+    {
+        transportSource.setPosition(slider->getValue());
     }
 }

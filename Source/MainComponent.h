@@ -36,6 +36,7 @@ private:
     TextButton stopButton;
     TextButton pauseButton;
     Slider volumeSlider;
+    Slider transportSlider;
     Label volumeLabel;
 
     Label message;
