@@ -47,6 +47,8 @@ private:
 
     void sliderValueChanged(Slider* slider);
 
+    void sliderDragEnded(Slider* slider);
+
     AudioFormatManager formatManager;
 
     bool playing;

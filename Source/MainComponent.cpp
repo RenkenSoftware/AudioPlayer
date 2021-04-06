@@ -100,8 +100,23 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         return;
     }
 
+    if (transportSource.hasStreamFinished())
+    {
+        message.setText("Stopped", dontSendNotification);
+        playing = false;
+        stopButton.setEnabled(false);
+        pauseButton.setEnabled(false);
+        playButton.setEnabled(true);
+        transportSource.setPosition(0.0);
+        transportSlider.setValue(0.0);
+    }
+
     transportSource.getNextAudioBlock(bufferToFill);
-    transportSlider.setValue(transportSource.getCurrentPosition());
+
+    if (!transportSlider.isMouseButtonDown(false))
+    {
+        transportSlider.setValue(transportSource.getCurrentPosition());
+    }
 
     for (int i = 0; i < bufferToFill.buffer->getNumChannels(); i++)
     {
@@ -203,7 +218,6 @@ void MainComponent::buttonClicked(Button* pButton)
             playButton.setEnabled(true);
             pauseButton.setEnabled(false);
             stopButton.setEnabled(false);
-            transportSource.stop();
         }
     }
 }
@@ -214,7 +228,10 @@ void MainComponent::sliderValueChanged(Slider* slider)
     {
         transportSource.setGain(slider->getValue());
     }
+}
 
+void MainComponent::sliderDragEnded(Slider* slider)
+{
     if (slider == &transportSlider)
     {
         transportSource.setPosition(slider->getValue());
