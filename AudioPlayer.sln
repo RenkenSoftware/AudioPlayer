@@ -1,0 +1,20 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2019
+
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AudioPlayer - App", "AudioPlayer_App.vcxproj", "{AEAB0DDC-AAFA-FDD4-AA3C-072BE41BDA9E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AEAB0DDC-AAFA-FDD4-AA3C-072BE41BDA9E}.Debug|x64.ActiveCfg = Debug|x64
+		{AEAB0DDC-AAFA-FDD4-AA3C-072BE41BDA9E}.Debug|x64.Build.0 = Debug|x64
+		{AEAB0DDC-AAFA-FDD4-AA3C-072BE41BDA9E}.Release|x64.ActiveCfg = Release|x64
+		{AEAB0DDC-AAFA-FDD4-AA3C-072BE41BDA9E}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
