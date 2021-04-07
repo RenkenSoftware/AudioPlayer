@@ -6,6 +6,7 @@ MainComponent::MainComponent()
 {
     // Make sure you set the size of the component after
     // you add any child components.
+    this->addKeyListener(this);
 
     setSize (800, 600);
 
@@ -175,8 +176,36 @@ void MainComponent::timerCallback()
     }
 }
 
+bool MainComponent::keyPressed(const KeyPress& key, Component* component)
+{
+    if (key.isKeyCode(KeyPress::spaceKey))
+    {
+        switch (state)
+        {
+        case TransportState::Playing:
+            pauseButtonClicked();
+            break;
+        case TransportState::Paused:
+            playButtonClicked();
+            break;
+        case TransportState::Stopped:
+            playButtonClicked();
+            break;
+        case TransportState::FileLoaded:
+            playButtonClicked();
+            break;
+        }
+    }
+    return true;
+}
+
 void MainComponent::loadButtonClicked()
 {
+    if (state == TransportState::Playing || state == TransportState::Paused)
+    {
+        stopButtonClicked();
+    }
+
     FileChooser chooser("Select an audio file.", {}, "*.wav;*.mp3");
     if (chooser.browseForFileToOpen())
     {
@@ -265,6 +294,7 @@ void MainComponent::changeTransportState(TransportState newState)
         stopButton.setEnabled(false);
         pauseButton.setEnabled(false);
         transportSlider.setRange(0.0, transportSource.getLengthInSeconds());
+        transportSlider.setValue(0.0);
         transportSlider.setEnabled(true);
         volumeSlider.setEnabled(true);
         break;

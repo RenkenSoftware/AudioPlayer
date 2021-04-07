@@ -13,7 +13,8 @@ class MainComponent : public AudioAppComponent,
     public Button::Listener,
     public Slider::Listener,
     public ChangeListener,
-    public Timer
+    public Timer,
+    public KeyListener
 {
 public:
     //==============================================================================
@@ -58,6 +59,7 @@ private:
     void sliderDragEnded(Slider* slider) override;
     void changeListenerCallback(ChangeBroadcaster* source) override;
     void timerCallback() override;
+    bool keyPressed(const KeyPress& key, Component* component) override;
 
     void loadButtonClicked();
     void playButtonClicked();
