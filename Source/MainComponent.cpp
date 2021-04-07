@@ -6,7 +6,7 @@ MainComponent::MainComponent()
 {
     // Make sure you set the size of the component after
     // you add any child components.
-    this->addKeyListener(this);
+    addKeyListener(this);
 
     setSize (800, 600);
 
