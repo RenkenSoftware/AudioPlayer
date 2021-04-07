@@ -9,9 +9,11 @@ using namespace juce;
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MainComponent  : public AudioAppComponent,
-                       public Button::Listener,
-                       public Slider::Listener
+class MainComponent : public AudioAppComponent,
+    public Button::Listener,
+    public Slider::Listener,
+    public ChangeListener,
+    public Timer
 {
 public:
     //==============================================================================
@@ -31,6 +33,16 @@ private:
     //==============================================================================
     // Your private member variables go here...
 
+    enum class TransportState {
+        Playing,
+        Stopped,
+        Paused,
+        NoFileLoaded,
+        FileLoaded,
+    };
+
+    TransportState state;
+
     TextButton loadButton;
     TextButton playButton;
     TextButton stopButton;
@@ -41,21 +53,24 @@ private:
 
     Label message;
 
-    File resourceFile;
+    void buttonClicked(Button* pButton) override;
+    void sliderValueChanged(Slider* slider) override;
+    void sliderDragEnded(Slider* slider) override;
+    void changeListenerCallback(ChangeBroadcaster* source) override;
+    void timerCallback() override;
 
-    void buttonClicked(Button* pButton);
-
-    void sliderValueChanged(Slider* slider);
-
-    void sliderDragEnded(Slider* slider);
+    void loadButtonClicked();
+    void playButtonClicked();
+    void stopButtonClicked();
+    void pauseButtonClicked();
+    void volumeSliderValueChanged();
+    void transportSliderDragEnded();
+    void changeTransportState(TransportState newState);
+    void doDSP(AudioSourceChannelInfo& bufferToFill);
 
     AudioFormatManager formatManager;
+    AudioFormatReader* reader{};
 
-    bool playing;
-    bool fileLoaded;
-    double volume;
-
-    AudioFormatReader* reader;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     AudioTransportSource transportSource;
 
