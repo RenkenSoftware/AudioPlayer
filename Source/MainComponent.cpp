@@ -13,6 +13,7 @@ MainComponent::MainComponent()
     addAndMakeVisible(volumeSlider);
     volumeSlider.setRange(0.0f, 5.0f);
     volumeSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
+    volumeSlider.setSkewFactor(0.5, false);
     volumeSlider.addListener(this);
 
     addAndMakeVisible(transportSlider);
@@ -91,6 +92,8 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
     }
 
     transportSource.getNextAudioBlock(bufferToFill);
+
+    doDSP(bufferToFill);
 }
 
 void MainComponent::releaseResources()
@@ -313,7 +316,7 @@ void MainComponent::changeTransportState(TransportState newState)
     }
 }
 
-void MainComponent::doDSP(AudioSourceChannelInfo& bufferToFill)
+void MainComponent::doDSP(const AudioSourceChannelInfo& bufferToFill)
 {
     for (int i = 0; i < bufferToFill.buffer->getNumChannels(); i++)
     {

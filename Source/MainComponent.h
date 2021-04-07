@@ -68,7 +68,7 @@ private:
     void volumeSliderValueChanged();
     void transportSliderDragEnded();
     void changeTransportState(TransportState newState);
-    void doDSP(AudioSourceChannelInfo& bufferToFill);
+    void doDSP(const AudioSourceChannelInfo& bufferToFill);
 
     AudioFormatManager formatManager;
     AudioFormatReader* reader{};
