@@ -20,6 +20,27 @@ MainComponent::MainComponent()
     transportSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
     transportSlider.addListener(this);
 
+    addAndMakeVisible(bassEqSlider);
+    bassEqSlider.setRange(0.01f, 2.0f);
+    bassEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
+    bassEqSlider.setValue(1.0f);
+    bassEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
+    bassEqSlider.addListener(this);
+
+    addAndMakeVisible(midEqSlider);
+    midEqSlider.setRange(0.01f, 2.0f);
+    midEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
+    midEqSlider.setValue(1.0f);
+    midEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
+    midEqSlider.addListener(this);
+
+    addAndMakeVisible(highEqSlider);
+    highEqSlider.setRange(0.01f, 2.0f);
+    highEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
+    highEqSlider.setValue(1.0f);
+    highEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
+    highEqSlider.addListener(this);
+
     addAndMakeVisible(loadButton);
     loadButton.setButtonText("Load Audio File");
     loadButton.addListener(this);
@@ -41,6 +62,18 @@ MainComponent::MainComponent()
     addAndMakeVisible(volumeLabel);
     volumeLabel.setText("Volume", dontSendNotification);
     volumeLabel.attachToComponent(&volumeSlider, true);
+
+    addAndMakeVisible(bassLabel);
+    bassLabel.setText("Bass", dontSendNotification);
+    bassLabel.attachToComponent(&bassEqSlider, true);
+
+    addAndMakeVisible(midLabel);
+    midLabel.setText("Mid", dontSendNotification);
+    midLabel.attachToComponent(&midEqSlider, true);
+
+    addAndMakeVisible(highLabel);
+    highLabel.setText("High", dontSendNotification);
+    highLabel.attachToComponent(&highEqSlider, true);
 
     transportSource.addChangeListener(this);
 
@@ -79,8 +112,16 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // but be careful - it will be called on the audio thread, not the GUI thread.
 
     // For more details, see the help for AudioProcessor::prepareToPlay()
+    sampleRateValue = sampleRate;
 
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+
+    bassEqL.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, 300, 1.0, 1.0f));
+    bassEqR.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, 300, 1.0, 1.0f));
+    midEqL.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, 2000, 1.0, 1.0f));
+    midEqR.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, 2000, 1.0, 1.0f));
+    highEqL.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, 5000, 1.0, 1.0f));
+    highEqR.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, 5000, 1.0, 1.0f));
 }
 
 void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
@@ -93,7 +134,12 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
 
     transportSource.getNextAudioBlock(bufferToFill);
 
-    doDSP(bufferToFill);
+    bassEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
+    bassEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
+    midEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
+    midEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
+    highEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
+    highEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
 }
 
 void MainComponent::releaseResources()
@@ -126,6 +172,9 @@ void MainComponent::resized()
     message.setBounds(10, 560, 100, 30);
     volumeSlider.setBounds(420, 560, 370, 30);
     transportSlider.setBounds(40, 520, 750, 30);
+    bassEqSlider.setBounds(150, 10, 150, 150);
+    midEqSlider.setBounds(340, 10, 150, 150);
+    highEqSlider.setBounds(530, 10, 150, 150);
 }
 
 void MainComponent::buttonClicked(Button* pButton)
@@ -149,6 +198,21 @@ void MainComponent::sliderValueChanged(Slider* slider)
     if (slider == &volumeSlider)
     {
         volumeSliderValueChanged();
+    }
+
+    if (slider == &bassEqSlider)
+    {
+        bassEqSliderValueChanged();
+    }
+
+    if (slider == &midEqSlider)
+    {
+        midEqSliderValueChanged();
+    }
+
+    if (slider == &highEqSlider)
+    {
+        highEqSliderValueChanged();
     }
 }
 
@@ -248,6 +312,24 @@ void MainComponent::volumeSliderValueChanged()
     transportSource.setGain((float)volumeSlider.getValue());
 }
 
+void MainComponent::bassEqSliderValueChanged()
+{
+    bassEqL.setCoefficients(IIRCoefficients::makeLowShelf(sampleRateValue, 300, 1.0, (float)bassEqSlider.getValue()));
+    bassEqR.setCoefficients(IIRCoefficients::makeLowShelf(sampleRateValue, 300, 1.0, (float)bassEqSlider.getValue()));
+}
+
+void MainComponent::midEqSliderValueChanged()
+{
+    midEqL.setCoefficients(IIRCoefficients::makePeakFilter(sampleRateValue, 2000, 1.0, (float)midEqSlider.getValue()));
+    midEqR.setCoefficients(IIRCoefficients::makePeakFilter(sampleRateValue, 2000, 1.0, (float)midEqSlider.getValue()));
+}
+
+void MainComponent::highEqSliderValueChanged()
+{
+    highEqL.setCoefficients(IIRCoefficients::makeHighShelf(sampleRateValue, 5000, 1.0, (float)highEqSlider.getValue()));
+    highEqR.setCoefficients(IIRCoefficients::makeHighShelf(sampleRateValue, 5000, 1.0, (float)highEqSlider.getValue()));
+}
+
 void MainComponent::transportSliderDragEnded()
 {
     transportSource.setPosition(transportSlider.getValue());
@@ -313,16 +395,5 @@ void MainComponent::changeTransportState(TransportState newState)
         volumeSlider.setEnabled(false);
         volumeSlider.setValue(1.0f);
         break;
-    }
-}
-
-void MainComponent::doDSP(const AudioSourceChannelInfo& bufferToFill)
-{
-    for (int i = 0; i < bufferToFill.buffer->getNumChannels(); i++)
-    {
-        for (int j = 0; j < bufferToFill.numSamples; j++)
-        {
-            bufferToFill.buffer->setSample(i, j, bufferToFill.buffer->getSample(i, j));
-        }
     }
 }

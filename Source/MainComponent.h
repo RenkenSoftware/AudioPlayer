@@ -50,8 +50,13 @@ private:
     TextButton pauseButton;
     Slider volumeSlider;
     Slider transportSlider;
+    Slider bassEqSlider;
+    Slider midEqSlider;
+    Slider highEqSlider;
     Label volumeLabel;
-
+    Label bassLabel;
+    Label midLabel;
+    Label highLabel;
     Label message;
 
     void buttonClicked(Button* pButton) override;
@@ -66,15 +71,25 @@ private:
     void stopButtonClicked();
     void pauseButtonClicked();
     void volumeSliderValueChanged();
+    void bassEqSliderValueChanged();
+    void midEqSliderValueChanged();
+    void highEqSliderValueChanged();
     void transportSliderDragEnded();
     void changeTransportState(TransportState newState);
-    void doDSP(const AudioSourceChannelInfo& bufferToFill);
 
     AudioFormatManager formatManager;
     AudioFormatReader* reader{};
-
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     AudioTransportSource transportSource;
+
+    IIRFilter bassEqL;
+    IIRFilter bassEqR;
+    IIRFilter midEqL;
+    IIRFilter midEqR;
+    IIRFilter highEqL;
+    IIRFilter highEqR;
+
+    double sampleRateValue;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
