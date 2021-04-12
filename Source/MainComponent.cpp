@@ -1,11 +1,13 @@
 #include "MainComponent.h"
 
 //==============================================================================
-MainComponent::MainComponent()
+MainComponent::MainComponent() : specFFT (fftOrder),
+                                 specImage (Image::RGB, 512, 400, true)
 
 {
     // Make sure you set the size of the component after
     // you add any child components.
+
     addKeyListener(this);
 
     setSize (800, 600);
@@ -140,6 +142,14 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
     midEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
     highEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
     highEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
+
+    if (bufferToFill.buffer->getNumChannels() > 0)
+    {
+        auto* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
+
+        for (auto i = 0; i < bufferToFill.numSamples; ++i)
+            pushNextSampleIntoFifo(channelData[i]);
+    }
 }
 
 void MainComponent::releaseResources()
@@ -155,8 +165,8 @@ void MainComponent::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-    // You can add your drawing code here!
+    g.setOpacity(1.0f);
+    g.drawImage(specImage, getLocalBounds().toFloat());
 }
 
 void MainComponent::resized()
@@ -240,6 +250,13 @@ void MainComponent::timerCallback()
     if (!transportSlider.isMouseButtonDown())
     {
         transportSlider.setValue(transportSource.getCurrentPosition());
+    }
+
+    if (nextFFTBlockReady)
+    {
+        drawNextLineOfSpectrogram();
+        nextFFTBlockReady = false;
+        repaint();
     }
 }
 
@@ -395,5 +412,49 @@ void MainComponent::changeTransportState(TransportState newState)
         volumeSlider.setEnabled(false);
         volumeSlider.setValue(1.0f);
         break;
+    }
+}
+
+void MainComponent::pushNextSampleIntoFifo(float sample) noexcept
+{
+    // if the fifo contains enough data, set a flag to say
+    // that the next line should now be rendered..
+    if (fifoIndex == fftSize)       // [8]
+    {
+        if (!nextFFTBlockReady)    // [9]
+        {
+            std::fill(fftData.begin(), fftData.end(), 0.0f);
+            std::copy(fifo.begin(), fifo.end(), fftData.begin());
+            nextFFTBlockReady = true;
+        }
+
+        fifoIndex = 0;
+    }
+
+    fifo[(size_t)fifoIndex++] = sample; // [9]
+}
+
+void MainComponent::drawNextLineOfSpectrogram()
+{
+    auto rightHandEdge = specImage.getWidth() - 1;
+    auto imageHeight = specImage.getHeight();
+
+    // first, shuffle our image leftwards by 1 pixel..
+    specImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);         // [1]
+
+    // then render our FFT data..
+    specFFT.performFrequencyOnlyForwardTransform(fftData.data());                   // [2]
+
+    // find the range of values produced, so we can scale our rendering to
+    // show up the detail clearly
+    auto maxLevel = juce::FloatVectorOperations::findMinAndMax(fftData.data(), fftSize / 2); // [3]
+
+    for (auto y = 1; y < imageHeight; ++y)                                              // [4]
+    {
+        auto skewedProportionY = 1.0f - std::exp(std::log((float)y / (float)imageHeight) * 0.2f);
+        auto fftDataIndex = (size_t)juce::jlimit(0, fftSize / 2, (int)(skewedProportionY * fftSize / 2));
+        auto level = juce::jmap(fftData[fftDataIndex], 0.0f, juce::jmax(maxLevel.getEnd(), 1e-5f), 0.0f, 1.0f);
+
+        specImage.setPixelAt(rightHandEdge, y, juce::Colour::fromHSV(level, 1.0f, level, 1.0f)); // [5]
     }
 }

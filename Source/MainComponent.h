@@ -30,6 +30,9 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
+    static constexpr auto fftOrder = 10;
+    static constexpr auto fftSize = 1 << fftOrder;
+
 private:
     //==============================================================================
     // Your private member variables go here...
@@ -76,6 +79,8 @@ private:
     void highEqSliderValueChanged();
     void transportSliderDragEnded();
     void changeTransportState(TransportState newState);
+    void pushNextSampleIntoFifo(float sample) noexcept;
+    void drawNextLineOfSpectrogram();
 
     AudioFormatManager formatManager;
     AudioFormatReader* reader{};
@@ -90,6 +95,13 @@ private:
     IIRFilter highEqR;
 
     double sampleRateValue;
+
+    dsp::FFT specFFT;
+    Image specImage;
+    std::array<float, fftSize> fifo;
+    std::array<float, fftSize * 2> fftData;
+    int fifoIndex = 0;
+    bool nextFFTBlockReady = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
