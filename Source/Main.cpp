@@ -10,7 +10,7 @@
 #include "MainComponent.h"
 
 //==============================================================================
-class AudioPlayerApplication  : public juce::JUCEApplication
+class AudioPlayerApplication : public juce::JUCEApplication
 {
 public:
     //==============================================================================

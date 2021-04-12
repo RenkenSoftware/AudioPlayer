@@ -133,7 +133,7 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
         bufferToFill.clearActiveBufferRegion();
         return;
     }
-
+    
     transportSource.getNextAudioBlock(bufferToFill);
 
     bassEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
