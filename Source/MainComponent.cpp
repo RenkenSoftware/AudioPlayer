@@ -2,7 +2,7 @@
 
 //==============================================================================
 MainComponent::MainComponent() : specFFT (fftOrder),
-                                 specImage (Image::RGB, 512, 400, true)
+                                 specImage (Image::RGB, 760, 300, true)
 
 {
     // Make sure you set the size of the component after
@@ -43,6 +43,16 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     highEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
     highEqSlider.addListener(this);
 
+    addAndMakeVisible(specButton);
+    specButton.setButtonText("Spectogram mode");
+    specButton.setEnabled(true);
+    specButton.addListener(this);
+
+    addAndMakeVisible(freqMagButton);
+    freqMagButton.setButtonText("Frequency-magnitude mode");
+    freqMagButton.setEnabled(false);
+    freqMagButton.addListener(this);
+
     addAndMakeVisible(loadButton);
     loadButton.setButtonText("Load Audio File");
     loadButton.addListener(this);
@@ -80,6 +90,8 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     transportSource.addChangeListener(this);
 
     changeTransportState(TransportState::NoFileLoaded);
+
+    specState = SpecState::FreqMag;
 
     // Some platforms require permissions to open input channels so request that here
     if (juce::RuntimePermissions::isRequired (juce::RuntimePermissions::recordAudio)
@@ -128,7 +140,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
 {
-    if (readerSource.get() == nullptr || state != TransportState::Playing)
+    if (readerSource.get() == nullptr || transportState != TransportState::Playing)
     {
         bufferToFill.clearActiveBufferRegion();
         return;
@@ -143,12 +155,11 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
     highEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
     highEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
 
-    if (bufferToFill.buffer->getNumChannels() > 0)
-    {
-        auto* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
+    const float* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
 
-        for (auto i = 0; i < bufferToFill.numSamples; ++i)
-            pushNextSampleIntoFifo(channelData[i]);
+    for (int i = 0; i < bufferToFill.numSamples; i++)
+    {
+        pushNextSampleIntoFifo(channelData[i]);
     }
 }
 
@@ -166,7 +177,7 @@ void MainComponent::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
     g.setOpacity(1.0f);
-    g.drawImage(specImage, getLocalBounds().toFloat());
+    g.drawImage(specImage, 20, 200, 760, 300, 0, 0, 760, 300, false);
 }
 
 void MainComponent::resized()
@@ -175,6 +186,8 @@ void MainComponent::resized()
     // If you add any child components, this is where you should
     // update their positions.
     
+    specButton.setBounds(700, 10, 90, 30);
+    freqMagButton.setBounds(700, 50, 90, 30);
     loadButton.setBounds(10, 10, 100, 30);
     playButton.setBounds(120, 560, 70, 30);
     stopButton.setBounds(280, 560, 70, 30);
@@ -200,6 +213,14 @@ void MainComponent::buttonClicked(Button* pButton)
     }
     else if (pButton == &pauseButton) {
         pauseButtonClicked();
+    }
+    else if (pButton == &specButton)
+    {
+        specButtonClicked();
+    }
+    else if (pButton == &freqMagButton)
+    {
+        freqMagButtonClicked();
     }
 }
 
@@ -264,7 +285,7 @@ bool MainComponent::keyPressed(const KeyPress& key, Component* component)
 {
     if (key.isKeyCode(KeyPress::spaceKey))
     {
-        switch (state)
+        switch (transportState)
         {
         case TransportState::Playing:
             pauseButtonClicked();
@@ -285,7 +306,7 @@ bool MainComponent::keyPressed(const KeyPress& key, Component* component)
 
 void MainComponent::loadButtonClicked()
 {
-    if (state == TransportState::Playing || state == TransportState::Paused)
+    if (transportState == TransportState::Playing || transportState == TransportState::Paused)
     {
         stopButtonClicked();
     }
@@ -324,6 +345,22 @@ void MainComponent::pauseButtonClicked()
     changeTransportState(TransportState::Paused);
 }
 
+void MainComponent::specButtonClicked()
+{
+    freqMagButton.setEnabled(true);
+    specButton.setEnabled(false);
+    specState = SpecState::Spectrogram;
+    specImage.clear(specImage.getBounds());
+}
+
+void MainComponent::freqMagButtonClicked()
+{
+    freqMagButton.setEnabled(false);
+    specButton.setEnabled(true);
+    specState = SpecState::FreqMag;
+    specImage.clear(specImage.getBounds());
+}
+
 void MainComponent::volumeSliderValueChanged()
 {
     transportSource.setGain((float)volumeSlider.getValue());
@@ -354,13 +391,13 @@ void MainComponent::transportSliderDragEnded()
 
 void MainComponent::changeTransportState(TransportState newState)
 {
-    if (state == newState)
+    if (transportState == newState)
     {
         return;
     }
-    state = newState;
+    transportState = newState;
 
-    switch (state)
+    switch (transportState)
     {
     case TransportState::Stopped:
         message.setText("Stopped", dontSendNotification);
@@ -417,11 +454,9 @@ void MainComponent::changeTransportState(TransportState newState)
 
 void MainComponent::pushNextSampleIntoFifo(float sample) noexcept
 {
-    // if the fifo contains enough data, set a flag to say
-    // that the next line should now be rendered..
-    if (fifoIndex == fftSize)       // [8]
+    if (fifoIndex == fftSize)
     {
-        if (!nextFFTBlockReady)    // [9]
+        if (!nextFFTBlockReady)
         {
             std::fill(fftData.begin(), fftData.end(), 0.0f);
             std::copy(fifo.begin(), fifo.end(), fftData.begin());
@@ -431,30 +466,47 @@ void MainComponent::pushNextSampleIntoFifo(float sample) noexcept
         fifoIndex = 0;
     }
 
-    fifo[(size_t)fifoIndex++] = sample; // [9]
+    fifo[(size_t)fifoIndex++] = sample;
 }
 
 void MainComponent::drawNextLineOfSpectrogram()
 {
     auto rightHandEdge = specImage.getWidth() - 1;
     auto imageHeight = specImage.getHeight();
+    auto imageWidth = specImage.getWidth();
 
-    // first, shuffle our image leftwards by 1 pixel..
-    specImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);         // [1]
-
-    // then render our FFT data..
-    specFFT.performFrequencyOnlyForwardTransform(fftData.data());                   // [2]
-
-    // find the range of values produced, so we can scale our rendering to
-    // show up the detail clearly
-    auto maxLevel = juce::FloatVectorOperations::findMinAndMax(fftData.data(), fftSize / 2); // [3]
-
-    for (auto y = 1; y < imageHeight; ++y)                                              // [4]
+    if (specState == SpecState::Spectrogram)
     {
-        auto skewedProportionY = 1.0f - std::exp(std::log((float)y / (float)imageHeight) * 0.2f);
-        auto fftDataIndex = (size_t)juce::jlimit(0, fftSize / 2, (int)(skewedProportionY * fftSize / 2));
-        auto level = juce::jmap(fftData[fftDataIndex], 0.0f, juce::jmax(maxLevel.getEnd(), 1e-5f), 0.0f, 1.0f);
+        specImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);
+    }
 
-        specImage.setPixelAt(rightHandEdge, y, juce::Colour::fromHSV(level, 1.0f, level, 1.0f)); // [5]
+    specFFT.performFrequencyOnlyForwardTransform(fftData.data());
+
+    auto maxLevel = juce::FloatVectorOperations::findMinAndMax(fftData.data(), fftSize / 2);
+
+    switch (specState)
+    {
+    case SpecState::Spectrogram:
+
+        for (auto y = 1; y < imageHeight; ++y)
+        {
+            auto skewedProportionY = 1.0f - std::exp(std::log((float)y / (float)imageHeight) * 0.2f);
+            auto fftDataIndex = (size_t)jlimit(0, fftSize / 2, (int)(skewedProportionY * fftSize / 2));
+            auto level = jmap(fftData[fftDataIndex], 0.0f, jmax(maxLevel.getEnd(), 1e-5f), 0.0f, 1.0f);
+            specImage.setPixelAt(rightHandEdge, y, Colour::fromHSV(level, 1.0f, level, 1.0f));
+        }
+        break;
+
+    case SpecState::FreqMag:
+
+        for (int x = 1; x < imageWidth; ++x)
+        {
+            auto skewedProportionX = 1.0f - std::exp(std::log((float)x / (float)imageWidth) * 0.2f);
+            auto fftDataIndex = (size_t)jlimit(0, fftSize / 2, (int)(skewedProportionX * fftSize / 2));
+            auto level = jmap(fftData[fftDataIndex], 0.0f, 20000.0f, 0.0f, (float)specImage.getHeight());
+            specImage.setPixelAt(x, (int)level, Colour::greyLevel(1.0f));
+        }
+        break;
+
     }
 }

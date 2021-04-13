@@ -34,19 +34,25 @@ public:
     static constexpr auto fftSize = 1 << fftOrder;
 
 private:
-    //==============================================================================
-    // Your private member variables go here...
 
     enum class TransportState {
         Playing,
         Stopped,
         Paused,
         NoFileLoaded,
-        FileLoaded,
+        FileLoaded
     };
 
-    TransportState state;
+    enum class SpecState {
+        Spectrogram,
+        FreqMag
+    };
+
+    TransportState transportState;
+    SpecState specState;
    
+    TextButton specButton;
+    TextButton freqMagButton;
     TextButton loadButton;
     TextButton playButton;
     TextButton stopButton;
@@ -73,6 +79,8 @@ private:
     void playButtonClicked();
     void stopButtonClicked();
     void pauseButtonClicked();
+    void specButtonClicked();
+    void freqMagButtonClicked();
     void volumeSliderValueChanged();
     void bassEqSliderValueChanged();
     void midEqSliderValueChanged();
