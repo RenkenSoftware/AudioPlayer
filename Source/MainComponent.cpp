@@ -2,11 +2,13 @@
 
 //==============================================================================
 MainComponent::MainComponent() : specFFT (fftOrder),
-                                 specImage (Image::RGB, 760, 300, true)
+                                 specImage(Image::RGB, 760, 300, true)
 
 {
     // Make sure you set the size of the component after
     // you add any child components.
+
+    addMouseListener(this, true);
 
     addKeyListener(this);
 
@@ -93,6 +95,9 @@ MainComponent::MainComponent() : specFFT (fftOrder),
 
     specState = SpecState::FreqMag;
 
+    specImageX = 20;
+    specImageY = 200;
+
     // Some platforms require permissions to open input channels so request that here
     if (juce::RuntimePermissions::isRequired (juce::RuntimePermissions::recordAudio)
         && ! juce::RuntimePermissions::isGranted (juce::RuntimePermissions::recordAudio))
@@ -132,8 +137,8 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
     bassEqL.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, 300, 1.0, 1.0f));
     bassEqR.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, 300, 1.0, 1.0f));
-    midEqL.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, 2000, 1.0, 1.0f));
-    midEqR.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, 2000, 1.0, 1.0f));
+    midEqL.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, 2000, 10.0, 1.0f));
+    midEqR.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, 2000, 10.0, 1.0f));
     highEqL.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, 5000, 1.0, 1.0f));
     highEqR.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, 5000, 1.0, 1.0f));
 }
@@ -177,7 +182,7 @@ void MainComponent::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
     g.setOpacity(1.0f);
-    g.drawImage(specImage, 20, 200, 760, 300, 0, 0, 760, 300, false);
+    g.drawImageAt(specImage, specImageX, specImageY);
 }
 
 void MainComponent::resized()
@@ -275,8 +280,9 @@ void MainComponent::timerCallback()
 
     if (nextFFTBlockReady)
     {
-        drawNextLineOfSpectrogram();
+        specFFT.performFrequencyOnlyForwardTransform(fftData.data());
         nextFFTBlockReady = false;
+        drawSpecImage();
         repaint();
     }
 }
@@ -302,6 +308,29 @@ bool MainComponent::keyPressed(const KeyPress& key, Component* component)
         }
     }
     return true;
+}
+
+void MainComponent::mouseDoubleClick(const MouseEvent& event)
+{
+    if (volumeSlider.isMouseOver())
+    {
+        volumeSlider.setValue(1.0);
+    }
+
+    if (highEqSlider.isMouseOver())
+    {
+        highEqSlider.setValue(1.0);
+    }
+
+    if (midEqSlider.isMouseOver())
+    {
+        midEqSlider.setValue(1.0);
+    }
+
+    if (bassEqSlider.isMouseOver())
+    {
+        bassEqSlider.setValue(1.0);
+    }
 }
 
 void MainComponent::loadButtonClicked()
@@ -350,7 +379,6 @@ void MainComponent::specButtonClicked()
     freqMagButton.setEnabled(true);
     specButton.setEnabled(false);
     specState = SpecState::Spectrogram;
-    specImage.clear(specImage.getBounds());
 }
 
 void MainComponent::freqMagButtonClicked()
@@ -358,7 +386,6 @@ void MainComponent::freqMagButtonClicked()
     freqMagButton.setEnabled(false);
     specButton.setEnabled(true);
     specState = SpecState::FreqMag;
-    specImage.clear(specImage.getBounds());
 }
 
 void MainComponent::volumeSliderValueChanged()
@@ -469,44 +496,67 @@ void MainComponent::pushNextSampleIntoFifo(float sample) noexcept
     fifo[(size_t)fifoIndex++] = sample;
 }
 
-void MainComponent::drawNextLineOfSpectrogram()
+void MainComponent::drawSpecImage()
+{
+
+    if (specState == SpecState::FreqMag)
+    {
+        drawFreqMagImage();
+    }
+    else
+    {
+        drawSpectralImage();
+    }
+}
+
+void MainComponent::drawFreqMagImage()
+{
+    specImage.clear(specImage.getBounds(), Colour::greyLevel(0.0f));
+
+    auto mindB = -100.0f;
+    auto maxdB = 0.0f;
+
+    for (int i = 0; i < scopeSize; ++i)
+    {
+        auto skewedProportionX = 1.0f - std::exp(std::log(1.0f - (float)i / (float)scopeSize) * 0.2f);
+        auto fftDataIndex = juce::jlimit(0, fftSize / 2, (int)(skewedProportionX * (float)fftSize * 0.5f));
+        auto level = juce::jmap(juce::jlimit(mindB, maxdB, juce::Decibels::gainToDecibels(fftData[fftDataIndex])
+            - juce::Decibels::gainToDecibels((float)fftSize)),
+            mindB, maxdB, 0.0f, 1.0f);
+
+        scopeData[i] = level;
+    }
+
+    for (int i = 0; i < scopeSize - 1; ++i)
+    {
+        drawLine(&specImage, juce::jmap(i, 0, scopeSize - 1, 0, specImage.getWidth()), juce::jmap(scopeData[i], 0.0f, 1.0f, (float)specImage.getHeight(), 0.0f), juce::jmap(i + 1, 0, scopeSize - 1, 0, specImage.getWidth()), juce::jmap(scopeData[i + 1], 0.0f, 1.0f, (float)specImage.getHeight(), 0.0f), Colour::greyLevel(1.0f));
+    }
+}
+
+void MainComponent::drawSpectralImage()
 {
     auto rightHandEdge = specImage.getWidth() - 1;
     auto imageHeight = specImage.getHeight();
-    auto imageWidth = specImage.getWidth();
 
-    if (specState == SpecState::Spectrogram)
-    {
-        specImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);
-    }
-
-    specFFT.performFrequencyOnlyForwardTransform(fftData.data());
+    specImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);
 
     auto maxLevel = juce::FloatVectorOperations::findMinAndMax(fftData.data(), fftSize / 2);
 
-    switch (specState)
+    for (auto y = 1; y < imageHeight; ++y)
     {
-    case SpecState::Spectrogram:
+        auto skewedProportionY = 1.0f - std::exp(std::log((float)y / (float)imageHeight) * 0.2f);
+        auto fftDataIndex = (size_t)juce::jlimit(0, fftSize / 2, (int)(skewedProportionY * fftSize / 2));
+        auto level = juce::jmap(fftData[fftDataIndex], 0.0f, juce::jmax(maxLevel.getEnd(), 1e-5f), 0.0f, 1.0f);
 
-        for (auto y = 1; y < imageHeight; ++y)
-        {
-            auto skewedProportionY = 1.0f - std::exp(std::log((float)y / (float)imageHeight) * 0.2f);
-            auto fftDataIndex = (size_t)jlimit(0, fftSize / 2, (int)(skewedProportionY * fftSize / 2));
-            auto level = jmap(fftData[fftDataIndex], 0.0f, jmax(maxLevel.getEnd(), 1e-5f), 0.0f, 1.0f);
-            specImage.setPixelAt(rightHandEdge, y, Colour::fromHSV(level, 1.0f, level, 1.0f));
-        }
-        break;
+        specImage.setPixelAt(rightHandEdge, y, juce::Colour::fromHSV(level, 1.0f, level, 1.0f));
+    }
+}
 
-    case SpecState::FreqMag:
-
-        for (int x = 1; x < imageWidth; ++x)
-        {
-            auto skewedProportionX = 1.0f - std::exp(std::log((float)x / (float)imageWidth) * 0.2f);
-            auto fftDataIndex = (size_t)jlimit(0, fftSize / 2, (int)(skewedProportionX * fftSize / 2));
-            auto level = jmap(fftData[fftDataIndex], 0.0f, 20000.0f, 0.0f, (float)specImage.getHeight());
-            specImage.setPixelAt(x, (int)level, Colour::greyLevel(1.0f));
-        }
-        break;
-
+void MainComponent::drawLine(Image* image, int fromX, int fromY, int toX, int toY, Colour colour)
+{
+    for (int i = 0; i <= 100; i++)
+    {
+        float lambda = ((float)i / 100.0f);
+        image->setPixelAt((int)((lambda * (float)fromX) + ((1.0f - lambda) * (float)toX)), (int)((lambda * (float)fromY) + ((1.0f - lambda) * (float)toY)), colour);
     }
 }

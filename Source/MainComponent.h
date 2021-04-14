@@ -15,6 +15,7 @@ class MainComponent : public AudioAppComponent,
     public ChangeListener,
     public Timer,
     public KeyListener
+
 {
 public:
     //==============================================================================
@@ -32,6 +33,7 @@ public:
 
     static constexpr auto fftOrder = 10;
     static constexpr auto fftSize = 1 << fftOrder;
+    static constexpr auto scopeSize = 512;
 
 private:
 
@@ -74,6 +76,7 @@ private:
     void changeListenerCallback(ChangeBroadcaster* source) override;
     void timerCallback() override;
     bool keyPressed(const KeyPress& key, Component* component) override;
+    void mouseDoubleClick(const MouseEvent& event) override;
 
     void loadButtonClicked();
     void playButtonClicked();
@@ -88,7 +91,10 @@ private:
     void transportSliderDragEnded();
     void changeTransportState(TransportState newState);
     void pushNextSampleIntoFifo(float sample) noexcept;
-    void drawNextLineOfSpectrogram();
+    void drawSpecImage();
+    void drawFreqMagImage();
+    void drawSpectralImage();
+    void drawLine(Image* image, int fromX, int fromY, int toX, int toY, Colour colour);
 
     AudioFormatManager formatManager;
     AudioFormatReader* reader{};
@@ -105,11 +111,14 @@ private:
     double sampleRateValue;
 
     dsp::FFT specFFT;
-    Image specImage;
+    int specImageX;
+    int specImageY;
     std::array<float, fftSize> fifo;
     std::array<float, fftSize * 2> fftData;
+    std::array<float, scopeSize> scopeData;
     int fifoIndex = 0;
     bool nextFFTBlockReady = false;
+    Image specImage;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
