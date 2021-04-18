@@ -2484,6 +2484,7 @@
     <ClCompile Include="Source\MainComponent.cpp">
       <Filter>AudioPlayer\Source</Filter>
     </ClCompile>
+    <ClCompile Include="TrackPlayer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">
@@ -4856,6 +4857,7 @@
     <ClInclude Include="Source\MainComponent.h">
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
+    <ClInclude Include="TrackPlayer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_audio_devices\native\oboe\CMakeLists.txt">

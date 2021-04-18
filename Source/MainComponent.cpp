@@ -2,7 +2,12 @@
 
 //==============================================================================
 MainComponent::MainComponent() : specFFT (fftOrder),
-                                 specImage(Image::RGB, 760, 300, true)
+                                 specImage(Image::RGB, 760, 300, true),
+                                 mainPlayer(),
+                                 fifoIndex(0),
+                                 nextFFTBlockReady(false),
+                                 specImageX(20),
+                                 specImageY(200)
 
 {
     // Make sure you set the size of the component after
@@ -10,14 +15,13 @@ MainComponent::MainComponent() : specFFT (fftOrder),
 
     addMouseListener(this, true);
 
-    addKeyListener(this);
-
     setSize (800, 600);
 
     addAndMakeVisible(volumeSlider);
-    volumeSlider.setRange(0.0f, 5.0f);
+    volumeSlider.setRange(0.0, 5.0);
     volumeSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
     volumeSlider.setSkewFactor(0.5, false);
+    volumeSlider.setValue(1.0);
     volumeSlider.addListener(this);
 
     addAndMakeVisible(transportSlider);
@@ -25,23 +29,23 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     transportSlider.addListener(this);
 
     addAndMakeVisible(bassEqSlider);
-    bassEqSlider.setRange(0.01f, 2.0f);
+    bassEqSlider.setRange(0.01, 2.0);
     bassEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
-    bassEqSlider.setValue(1.0f);
+    bassEqSlider.setValue(1.0);
     bassEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
     bassEqSlider.addListener(this);
 
     addAndMakeVisible(midEqSlider);
-    midEqSlider.setRange(0.01f, 2.0f);
+    midEqSlider.setRange(0.01, 2.0);
     midEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
-    midEqSlider.setValue(1.0f);
+    midEqSlider.setValue(1.0);
     midEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
     midEqSlider.addListener(this);
 
     addAndMakeVisible(highEqSlider);
-    highEqSlider.setRange(0.01f, 2.0f);
+    highEqSlider.setRange(0.01, 2.0);
     highEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
-    highEqSlider.setValue(1.0f);
+    highEqSlider.setValue(1.0);
     highEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
     highEqSlider.addListener(this);
 
@@ -71,8 +75,6 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     pauseButton.setButtonText("Pause");
     pauseButton.addListener(this);
 
-    addAndMakeVisible(message);
-
     addAndMakeVisible(volumeLabel);
     volumeLabel.setText("Volume", dontSendNotification);
     volumeLabel.attachToComponent(&volumeSlider, true);
@@ -89,14 +91,7 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     highLabel.setText("High", dontSendNotification);
     highLabel.attachToComponent(&highEqSlider, true);
 
-    transportSource.addChangeListener(this);
-
-    changeTransportState(TransportState::NoFileLoaded);
-
     specState = SpecState::FreqMag;
-
-    specImageX = 20;
-    specImageY = 200;
 
     // Some platforms require permissions to open input channels so request that here
     if (juce::RuntimePermissions::isRequired (juce::RuntimePermissions::recordAudio)
@@ -110,8 +105,6 @@ MainComponent::MainComponent() : specFFT (fftOrder),
         // Specify the number of input and output channels that we want to open
         setAudioChannels (2, 2);
     }
-
-    formatManager.registerBasicFormats();
 }
 
 MainComponent::~MainComponent()
@@ -133,7 +126,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // For more details, see the help for AudioProcessor::prepareToPlay()
     sampleRateValue = sampleRate;
 
-    transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    mainPlayer.prepareToPlay(samplesPerBlockExpected, sampleRate);
 
     bassEqL.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, 300, 1.0, 1.0f));
     bassEqR.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, 300, 1.0, 1.0f));
@@ -145,13 +138,9 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
 {
-    if (readerSource.get() == nullptr || transportState != TransportState::Playing)
-    {
-        bufferToFill.clearActiveBufferRegion();
-        return;
-    }
+    bufferToFill.clearActiveBufferRegion();
     
-    transportSource.getNextAudioBlock(bufferToFill);
+    mainPlayer.getNextAudioBlock(bufferToFill);
 
     bassEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
     bassEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
@@ -174,7 +163,7 @@ void MainComponent::releaseResources()
     // restarted due to a setting change.
 
     // For more details, see the help for AudioProcessor::releaseResources()
-    transportSource.releaseResources();
+    mainPlayer.releaseResources();
 }
 
 void MainComponent::paint (juce::Graphics& g)
@@ -197,7 +186,6 @@ void MainComponent::resized()
     playButton.setBounds(120, 560, 70, 30);
     stopButton.setBounds(280, 560, 70, 30);
     pauseButton.setBounds(200, 560, 70, 30);
-    message.setBounds(10, 560, 100, 30);
     volumeSlider.setBounds(420, 560, 370, 30);
     transportSlider.setBounds(40, 520, 750, 30);
     bassEqSlider.setBounds(150, 10, 150, 150);
@@ -260,22 +248,11 @@ void MainComponent::sliderDragEnded(Slider* slider)
     }
 }
 
-void MainComponent::changeListenerCallback(ChangeBroadcaster* source)
-{
-    if (source == &transportSource)
-    {
-        if (transportSource.hasStreamFinished())
-        {
-            stopButtonClicked();
-        }
-    }
-}
-
 void MainComponent::timerCallback()
 {
     if (!transportSlider.isMouseButtonDown())
     {
-        transportSlider.setValue(transportSource.getCurrentPosition());
+        transportSlider.setValue(mainPlayer.getTransportPosition());
     }
 
     if (nextFFTBlockReady)
@@ -285,29 +262,6 @@ void MainComponent::timerCallback()
         drawSpecImage();
         repaint();
     }
-}
-
-bool MainComponent::keyPressed(const KeyPress& key, Component* component)
-{
-    if (key.isKeyCode(KeyPress::spaceKey))
-    {
-        switch (transportState)
-        {
-        case TransportState::Playing:
-            pauseButtonClicked();
-            break;
-        case TransportState::Paused:
-            playButtonClicked();
-            break;
-        case TransportState::Stopped:
-            playButtonClicked();
-            break;
-        case TransportState::FileLoaded:
-            playButtonClicked();
-            break;
-        }
-    }
-    return true;
 }
 
 void MainComponent::mouseDoubleClick(const MouseEvent& event)
@@ -335,43 +289,35 @@ void MainComponent::mouseDoubleClick(const MouseEvent& event)
 
 void MainComponent::loadButtonClicked()
 {
-    if (transportState == TransportState::Playing || transportState == TransportState::Paused)
-    {
-        stopButtonClicked();
-    }
-
     FileChooser chooser("Select an audio file.", {}, "*.wav;*.mp3");
     if (chooser.browseForFileToOpen())
     {
-        auto file = chooser.getResult();
-        reader = formatManager.createReaderFor(file);
-        if (reader != nullptr)
+
+        if (mainPlayer.loadAudioFile(&chooser.getResult()))
         {
-            std::unique_ptr<juce::AudioFormatReaderSource> newSource(new AudioFormatReaderSource(reader, true));
-            transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
-            readerSource.reset(newSource.release());
-            changeTransportState(TransportState::FileLoaded);
-        }
-        else {
-            message.setText("Invalid file...", dontSendNotification);
-            delete reader;
+            transportSlider.setRange(0.0, mainPlayer.getLength());
+            transportSlider.setValue(0.0);
         }
     }
 }
 
 void MainComponent::playButtonClicked()
 {
-    changeTransportState(TransportState::Playing);
+    mainPlayer.play();
+    Timer::startTimer(10);
 }
 
 void MainComponent::stopButtonClicked()
 {
-    changeTransportState(TransportState::Stopped);
+    mainPlayer.stop();
+    Timer::stopTimer();
+    transportSlider.setValue(0.0);
 }
 
 void MainComponent::pauseButtonClicked()
 {
-    changeTransportState(TransportState::Paused);
+    mainPlayer.pause();
+    Timer::stopTimer();
 }
 
 void MainComponent::specButtonClicked()
@@ -390,7 +336,7 @@ void MainComponent::freqMagButtonClicked()
 
 void MainComponent::volumeSliderValueChanged()
 {
-    transportSource.setGain((float)volumeSlider.getValue());
+    mainPlayer.setGain(volumeSlider.getValue());
 }
 
 void MainComponent::bassEqSliderValueChanged()
@@ -413,70 +359,7 @@ void MainComponent::highEqSliderValueChanged()
 
 void MainComponent::transportSliderDragEnded()
 {
-    transportSource.setPosition(transportSlider.getValue());
-}
-
-void MainComponent::changeTransportState(TransportState newState)
-{
-    if (transportState == newState)
-    {
-        return;
-    }
-    transportState = newState;
-
-    switch (transportState)
-    {
-    case TransportState::Stopped:
-        message.setText("Stopped", dontSendNotification);
-        stopButton.setEnabled(false);
-        playButton.setEnabled(true);
-        pauseButton.setEnabled(false);
-        transportSource.setPosition(0.0);
-        transportSlider.setValue(0.0);
-        stopTimer();
-        transportSource.stop();
-        break;
-
-    case TransportState::Playing:
-        message.setText("Playing", dontSendNotification);
-        stopButton.setEnabled(true);
-        pauseButton.setEnabled(true);
-        playButton.setEnabled(false);
-        startTimer(100);
-        transportSource.start();
-        break;
-
-    case TransportState::Paused:
-        message.setText("Paused", dontSendNotification);
-        playButton.setEnabled(true);
-        pauseButton.setEnabled(false);
-        stopButton.setEnabled(false);
-        stopTimer();
-        break;
-
-    case TransportState::FileLoaded:
-        message.setText("File loaded!", dontSendNotification);
-        playButton.setEnabled(true);
-        stopButton.setEnabled(false);
-        pauseButton.setEnabled(false);
-        transportSlider.setRange(0.0, transportSource.getLengthInSeconds());
-        transportSlider.setValue(0.0);
-        transportSlider.setEnabled(true);
-        volumeSlider.setEnabled(true);
-        break;
-
-    case TransportState::NoFileLoaded:
-        message.setText("No file loaded...", dontSendNotification);
-        playButton.setEnabled(false);
-        stopButton.setEnabled(false);
-        pauseButton.setEnabled(false);
-        transportSlider.setEnabled(false);
-        transportSlider.setRange(0.0, 1.0);
-        transportSlider.setValue(0.5);
-        volumeSlider.setEnabled(false);
-        volumeSlider.setValue(1.0f);
-        break;
-    }
+    mainPlayer.setTransportPosition(transportSlider.getValue());
 }
 
 void MainComponent::pushNextSampleIntoFifo(float sample) noexcept

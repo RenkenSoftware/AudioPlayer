@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "../TrackPlayer.h"
 
 using namespace juce;
 
@@ -12,9 +13,7 @@ using namespace juce;
 class MainComponent : public AudioAppComponent,
     public Button::Listener,
     public Slider::Listener,
-    public ChangeListener,
-    public Timer,
-    public KeyListener
+    public Timer
 
 {
 public:
@@ -37,20 +36,11 @@ public:
 
 private:
 
-    enum class TransportState {
-        Playing,
-        Stopped,
-        Paused,
-        NoFileLoaded,
-        FileLoaded
-    };
-
     enum class SpecState {
         Spectrogram,
         FreqMag
     };
 
-    TransportState transportState;
     SpecState specState;
    
     TextButton specButton;
@@ -68,14 +58,11 @@ private:
     Label bassLabel;
     Label midLabel;
     Label highLabel;
-    Label message;
 
     void buttonClicked(Button* pButton) override;
     void sliderValueChanged(Slider* slider) override;
     void sliderDragEnded(Slider* slider) override;
-    void changeListenerCallback(ChangeBroadcaster* source) override;
     void timerCallback() override;
-    bool keyPressed(const KeyPress& key, Component* component) override;
     void mouseDoubleClick(const MouseEvent& event) override;
 
     void loadButtonClicked();
@@ -89,17 +76,11 @@ private:
     void midEqSliderValueChanged();
     void highEqSliderValueChanged();
     void transportSliderDragEnded();
-    void changeTransportState(TransportState newState);
     void pushNextSampleIntoFifo(float sample) noexcept;
     void drawSpecImage();
     void drawFreqMagImage();
     void drawSpectralImage();
     void drawLine(Image* image, int fromX, int fromY, int toX, int toY, Colour colour);
-
-    AudioFormatManager formatManager;
-    AudioFormatReader* reader{};
-    std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
-    AudioTransportSource transportSource;
 
     IIRFilter bassEqL;
     IIRFilter bassEqR;
@@ -111,14 +92,16 @@ private:
     double sampleRateValue;
 
     dsp::FFT specFFT;
-    int specImageX;
-    int specImageY;
     std::array<float, fftSize> fifo;
     std::array<float, fftSize * 2> fftData;
     std::array<float, scopeSize> scopeData;
-    int fifoIndex = 0;
-    bool nextFFTBlockReady = false;
+    int fifoIndex;
+    bool nextFFTBlockReady;
     Image specImage;
+    int specImageX;
+    int specImageY;
+
+    TrackPlayer mainPlayer{};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
