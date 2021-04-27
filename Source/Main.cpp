@@ -27,8 +27,14 @@ public:
     {
         // This method is where you should put your application's initialisation code..
 
+        File logFile("C:/Users/kaire/Documents/JUCE_Projects/AudioPlayer/Builds/VisualStudio2019/UnitTests/logfile.txt");
+        logFile.create();
+        FileLogger logger(logFile, "Log filge for Unit tests");
+
+        Logger::setCurrentLogger(&logger);
         UnitTestRunner testRunner;
         testRunner.runAllTests();
+        Logger::setCurrentLogger(nullptr);
 
         mainWindow.reset (new MainWindow (getApplicationName()));
     }
