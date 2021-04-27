@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../Builds/VisualStudio2019/Source/TrackPlayer.h"
+#include "..\Source\TrackPlayer.h"
 
 using namespace juce;
 
@@ -14,11 +14,30 @@ public:
     {
         TrackPlayer player;
 
-        beginTest("Part 1");
+        beginTest("Load an audio file");
+        File file("C:/Users/kaire/Documents/JUCE_Projects/AudioPlayer/Builds/VisualStudio2019/UnitTests/pinknoise.wav");
+        expect(player.loadAudioFile(&file));
 
+        beginTest("Check transprt position after loading file");
         expect(player.getTransportPosition() == 0.0);
 
-        beginTest("Part 2");
+        beginTest("Check Play functions");
+        expect(player.play());
+        expect(!player.play());
+
+        beginTest("Check Stop functions");
+        expect(player.stop());
+        expect(!player.stop());
+
+        beginTest("Check Pause functions");
+        expect(!player.pause());
+        player.play();
+        expect(player.pause());
+
+        beginTest("isPlaying return test");
+        expect(!player.isPlaying());
+        player.play();
+        expect(player.isPlaying());
     }
 };
 
