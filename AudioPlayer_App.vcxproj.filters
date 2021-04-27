@@ -445,6 +445,9 @@
     <Filter Include="JUCE Library Code">
       <UniqueIdentifier>{7ED5A90E-41AF-A1EF-659B-37CEEAB9BA61}</UniqueIdentifier>
     </Filter>
+    <Filter Include="AudioPlayer\UnitTests">
+      <UniqueIdentifier>{03ad0ed8-a1e3-4f96-bcb9-7967b2a804f1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_audio_basics\buffers\juce_AudioChannelSet.cpp">
@@ -2484,7 +2487,9 @@
     <ClCompile Include="Source\MainComponent.cpp">
       <Filter>AudioPlayer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="TrackPlayer.cpp" />
+    <ClCompile Include="Source\TrackPlayer.cpp">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">
@@ -4857,7 +4862,12 @@
     <ClInclude Include="Source\MainComponent.h">
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
-    <ClInclude Include="TrackPlayer.h" />
+    <ClInclude Include="Source\TrackPlayer.h">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="UnitTests\TrackPlayerTest.h">
+      <Filter>AudioPlayer\UnitTests</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_audio_devices\native\oboe\CMakeLists.txt">

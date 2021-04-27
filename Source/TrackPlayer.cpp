@@ -1,3 +1,4 @@
+#include <JuceHeader.h>
 #include "TrackPlayer.h"
 
 TrackPlayer::TrackPlayer()

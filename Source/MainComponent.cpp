@@ -1,4 +1,7 @@
+#include <JuceHeader.h>
+#include "TrackPlayer.h"
 #include "MainComponent.h"
+
 
 //==============================================================================
 MainComponent::MainComponent() : specFFT (fftOrder),

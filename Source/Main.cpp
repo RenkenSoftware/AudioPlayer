@@ -7,8 +7,9 @@
 */
 
 #include <JuceHeader.h>
-#include "../TrackPlayer.h"
+#include "TrackPlayer.h"
 #include "MainComponent.h"
+#include "../UnitTests/TrackPlayerTest.h"
 
 //==============================================================================
 class AudioPlayerApplication : public juce::JUCEApplication
@@ -25,6 +26,9 @@ public:
     void initialise (const juce::String& commandLine) override
     {
         // This method is where you should put your application's initialisation code..
+
+        UnitTestRunner testRunner;
+        testRunner.runAllTests();
 
         mainWindow.reset (new MainWindow (getApplicationName()));
     }

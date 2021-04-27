@@ -1,8 +1,5 @@
 #pragma once
 
-#include <JuceHeader.h>
-#include "../TrackPlayer.h"
-
 using namespace juce;
 
 //==============================================================================
