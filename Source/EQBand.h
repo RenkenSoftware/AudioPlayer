@@ -19,6 +19,7 @@ public:
 	double getQFactor();
 	float getGain();
 
+	void process(const AudioSourceChannelInfo& bufferToFill);
 
 private:
 	IIRFilter filter;
@@ -36,4 +37,6 @@ private:
 	double frequency;
 	double qFactor;
 	double sampleRate;
+
+	void setCoefficients();
 };

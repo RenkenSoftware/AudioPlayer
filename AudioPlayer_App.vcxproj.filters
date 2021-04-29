@@ -2490,7 +2490,7 @@
     <ClCompile Include="Source\TrackPlayer.cpp">
       <Filter>AudioPlayer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="EQBand.cpp">
+    <ClCompile Include="Source\EQBand.cpp">
       <Filter>AudioPlayer\Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -4871,7 +4871,7 @@
     <ClInclude Include="UnitTests\TrackPlayerTest.h">
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
-    <ClInclude Include="EQBand.h">
+    <ClInclude Include="Source\EQBand.h">
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
   </ItemGroup>

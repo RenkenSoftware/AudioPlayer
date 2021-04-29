@@ -4,6 +4,7 @@
 EQBand::EQBand(int pBandType, double pSampleRate) : sampleRate(pSampleRate), frequency(1000), qFactor(1.0), gain(1.0f)
 {	
 	setBandType(pBandType);
+	setCoefficients();
 }
 
 EQBand::~EQBand()
@@ -14,7 +15,7 @@ EQBand::~EQBand()
 bool EQBand::setBandType(int pBandType)
 {
 
-	if (pBandType != 0, 1, 2, 3, 4)
+	if (pBandType < 0 || pBandType > 4)
 	{
 		return false;
 	}
@@ -79,4 +80,26 @@ double EQBand::getQFactor()
 float EQBand::getGain()
 {
 	return gain;
+}
+
+void EQBand::process(const AudioSourceChannelInfo& bufferToFill)
+{
+	filter.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
+	filter.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
+}
+
+void EQBand::setCoefficients()
+{
+	switch (bandType) {
+	case BandType::Band:
+		filter.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, frequency, qFactor, gain));
+	case BandType::HighPass:
+		filter.setCoefficients(IIRCoefficients::makeHighPass(sampleRate, frequency));
+	case BandType::LowPass:
+		filter.setCoefficients(IIRCoefficients::makeLowPass(sampleRate, frequency));
+	case BandType::HighShelf:
+		filter.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, frequency, qFactor, gain));
+	case BandType::LowShelf:
+		filter.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, frequency, qFactor, gain));
+	}
 }

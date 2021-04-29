@@ -39,6 +39,8 @@ private:
     };
 
     SpecState specState;
+
+    double sampleRateValue;
    
     TextButton specButton;
     TextButton freqMagButton;
@@ -85,8 +87,6 @@ private:
     IIRFilter midEqR;
     IIRFilter highEqL;
     IIRFilter highEqR;
-
-    double sampleRateValue;
 
     dsp::FFT specFFT;
     std::array<float, fftSize> fifo;
