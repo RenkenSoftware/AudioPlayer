@@ -1,34 +1,28 @@
-/*
-  ==============================================================================
-
-    This file contains the basic startup code for a JUCE application.
-
-  ==============================================================================
-*/
 
 #include <JuceHeader.h>
 #include "TrackPlayer.h"
 #include "MainComponent.h"
 #include "../UnitTests/TrackPlayerTest.h"
 
-//==============================================================================
+/** Uncomment this to run all unit tests. The test results will be written into UnitTestLog.txt in the UnitTests folder.
+*/
+//#define TEST_MODE
+
 class AudioPlayerApplication : public juce::JUCEApplication
 {
 public:
-    //==============================================================================
     AudioPlayerApplication() {}
 
     const juce::String getApplicationName() override       { return ProjectInfo::projectName; }
     const juce::String getApplicationVersion() override    { return ProjectInfo::versionString; }
     bool moreThanOneInstanceAllowed() override             { return true; }
 
-    //==============================================================================
     void initialise (const juce::String& commandLine) override
     {
-        // This method is where you should put your application's initialisation code..
+#ifdef TEST_MODE
         String cwd = File::getCurrentWorkingDirectory().getFullPathName();
         cwd = cwd.replace("\\", "/");
-        cwd = cwd += "/UnitTests/logfile.txt";
+        cwd = cwd += "/UnitTests/UnitTestLog.txt";
 
         File logFile(cwd);
         logFile.deleteFile();
@@ -39,18 +33,17 @@ public:
         UnitTestRunner testRunner;
         testRunner.runAllTests();
         Logger::setCurrentLogger(nullptr);
-
+        quit();
+#else
         mainWindow.reset (new MainWindow (getApplicationName()));
+#endif
     }
 
     void shutdown() override
     {
-        // Add your application's shutdown code here..
-
-        mainWindow = nullptr; // (deletes our window)
+        mainWindow = nullptr;
     }
 
-    //==============================================================================
     void systemRequestedQuit() override
     {
         // This is called when the app is being asked to quit: you can ignore this
@@ -117,4 +110,5 @@ private:
 
 //==============================================================================
 // This macro generates the main() routine that launches the app.
+
 START_JUCE_APPLICATION (AudioPlayerApplication)
