@@ -15,7 +15,10 @@ public:
         TrackPlayer player;
 
         beginTest("Load an audio file");
-        File file("C:/Users/kaire/Documents/JUCE_Projects/AudioPlayer/Builds/VisualStudio2019/UnitTests/pinknoise.wav");
+        String cwd = File::getCurrentWorkingDirectory().getFullPathName();
+        cwd = cwd.replace("\\", "/");
+        cwd = cwd += "/UnitTests/pinknoise.wav";
+        File file(cwd);
         expect(player.loadAudioFile(&file));
 
         beginTest("Check transprt position after loading file");

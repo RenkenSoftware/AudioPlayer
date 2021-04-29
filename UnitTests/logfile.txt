@@ -1,33 +1,9 @@
 
 **********************************************************
-Log filge for Unit tests
-Log started: 27 Apr 2021 3:50:34pm
+Log file for Unit tests
+Log started: 29 Apr 2021 11:08:10am
 
-Random seed: 0xe434ac
------------------------------------------------------------------
-Starting test: TrackPlayerTest / Load an audio file...
-All tests completed successfully
------------------------------------------------------------------
-Starting test: TrackPlayerTest / Check transprt position after loading file...
-All tests completed successfully
------------------------------------------------------------------
-Starting test: TrackPlayerTest / Check Play functions...
-All tests completed successfully
------------------------------------------------------------------
-Starting test: TrackPlayerTest / Check Stop functions...
-All tests completed successfully
------------------------------------------------------------------
-Starting test: TrackPlayerTest / Check Pause functions...
-All tests completed successfully
------------------------------------------------------------------
-Starting test: TrackPlayerTest / isPlaying return test...
-All tests completed successfully
-
-**********************************************************
-Log filge for Unit tests
-Log started: 27 Apr 2021 3:51:23pm
-
-Random seed: 0x43e5d97
+Random seed: 0x8878d1
 -----------------------------------------------------------------
 Starting test: TrackPlayerTest / Load an audio file...
 All tests completed successfully

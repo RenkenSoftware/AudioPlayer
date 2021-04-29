@@ -26,10 +26,14 @@ public:
     void initialise (const juce::String& commandLine) override
     {
         // This method is where you should put your application's initialisation code..
+        String cwd = File::getCurrentWorkingDirectory().getFullPathName();
+        cwd = cwd.replace("\\", "/");
+        cwd = cwd += "/UnitTests/logfile.txt";
 
-        File logFile("C:/Users/kaire/Documents/JUCE_Projects/AudioPlayer/Builds/VisualStudio2019/UnitTests/logfile.txt");
+        File logFile(cwd);
+        logFile.deleteFile();
         logFile.create();
-        FileLogger logger(logFile, "Log filge for Unit tests");
+        FileLogger logger(logFile, "Log file for Unit tests");
 
         Logger::setCurrentLogger(&logger);
         UnitTestRunner testRunner;
