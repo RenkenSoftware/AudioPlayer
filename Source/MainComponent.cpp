@@ -1,5 +1,6 @@
 #include <JuceHeader.h>
 #include "TrackPlayer.h"
+#include "EQBand.h"
 #include "MainComponent.h"
 
 
@@ -10,12 +11,14 @@ MainComponent::MainComponent() : specFFT (fftOrder),
                                  fifoIndex(0),
                                  nextFFTBlockReady(false),
                                  specImageX(20),
-                                 specImageY(200)
-
+                                 specImageY(200),
+                                 bassEq(1, 200, 1.0, 1.0f),
+                                 midEq(0, 1000, 1.0, 1.0f),
+                                 highEq(2, 20000, 1.0, 1.0f)
 {
     // Make sure you set the size of the component after
     // you add any child components.
-
+    
     addMouseListener(this, true);
 
     setSize (800, 600);
@@ -32,9 +35,9 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     transportSlider.addListener(this);
 
     addAndMakeVisible(bassEqSlider);
-    bassEqSlider.setRange(0.01, 2.0);
+    bassEqSlider.setRange(10, 1000);
     bassEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
-    bassEqSlider.setValue(1.0);
+    bassEqSlider.setValue(10);
     bassEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
     bassEqSlider.addListener(this);
 
@@ -46,9 +49,9 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     midEqSlider.addListener(this);
 
     addAndMakeVisible(highEqSlider);
-    highEqSlider.setRange(0.01, 2.0);
+    highEqSlider.setRange(1000, 20000);
     highEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
-    highEqSlider.setValue(1.0);
+    highEqSlider.setValue(20000);
     highEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
     highEqSlider.addListener(this);
 
@@ -131,32 +134,33 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
     mainPlayer.prepareToPlay(samplesPerBlockExpected, sampleRate);
 
-    bassEqL.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, 300, 1.0, 1.0f));
-    bassEqR.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, 300, 1.0, 1.0f));
-    midEqL.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, 2000, 10.0, 1.0f));
-    midEqR.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, 2000, 10.0, 1.0f));
-    highEqL.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, 5000, 1.0, 1.0f));
-    highEqR.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, 5000, 1.0, 1.0f));
+    bassEq.setSampleRate(sampleRate);
+    midEq.setSampleRate(sampleRate);
+    highEq.setSampleRate(sampleRate);
+
+    bassEq.setEnabled(true);
+    midEq.setEnabled(true);
+    highEq.setEnabled(true);
 }
 
 void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
 {
     bufferToFill.clearActiveBufferRegion();
     
-    mainPlayer.getNextAudioBlock(bufferToFill);
-
-    bassEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
-    bassEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
-    midEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
-    midEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
-    highEqL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
-    highEqR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
-
-    const float* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
-
-    for (int i = 0; i < bufferToFill.numSamples; i++)
+    if (mainPlayer.isPlaying())
     {
-        pushNextSampleIntoFifo(channelData[i]);
+        mainPlayer.getNextAudioBlock(bufferToFill);
+
+        bassEq.process(bufferToFill);
+        midEq.process(bufferToFill);
+        highEq.process(bufferToFill);
+
+        const float* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
+
+        for (int i = 0; i < bufferToFill.numSamples; i++)
+        {
+            pushNextSampleIntoFifo(channelData[i]);
+        }
     }
 }
 
@@ -344,20 +348,17 @@ void MainComponent::volumeSliderValueChanged()
 
 void MainComponent::bassEqSliderValueChanged()
 {
-    bassEqL.setCoefficients(IIRCoefficients::makeLowShelf(sampleRateValue, 300, 1.0, (float)bassEqSlider.getValue()));
-    bassEqR.setCoefficients(IIRCoefficients::makeLowShelf(sampleRateValue, 300, 1.0, (float)bassEqSlider.getValue()));
+    bassEq.setFrequency(bassEqSlider.getValue());
 }
 
 void MainComponent::midEqSliderValueChanged()
 {
-    midEqL.setCoefficients(IIRCoefficients::makePeakFilter(sampleRateValue, 2000, 1.0, (float)midEqSlider.getValue()));
-    midEqR.setCoefficients(IIRCoefficients::makePeakFilter(sampleRateValue, 2000, 1.0, (float)midEqSlider.getValue()));
+    midEq.setGain(midEqSlider.getValue());
 }
 
 void MainComponent::highEqSliderValueChanged()
 {
-    highEqL.setCoefficients(IIRCoefficients::makeHighShelf(sampleRateValue, 5000, 1.0, (float)highEqSlider.getValue()));
-    highEqR.setCoefficients(IIRCoefficients::makeHighShelf(sampleRateValue, 5000, 1.0, (float)highEqSlider.getValue()));
+    highEq.setFrequency(highEqSlider.getValue());
 }
 
 void MainComponent::transportSliderDragEnded()

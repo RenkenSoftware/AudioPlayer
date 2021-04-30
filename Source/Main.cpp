@@ -1,6 +1,7 @@
 
 #include <JuceHeader.h>
 #include "TrackPlayer.h"
+#include "EQBand.h"
 #include "MainComponent.h"
 #include "../UnitTests/TrackPlayerTest.h"
 

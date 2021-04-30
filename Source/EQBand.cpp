@@ -1,10 +1,9 @@
 #include <JuceHeader.h>
 #include "EQBand.h"
 
-EQBand::EQBand(int pBandType, double pSampleRate) : sampleRate(pSampleRate), frequency(1000), qFactor(1.0), gain(1.0f)
+EQBand::EQBand(int pBandType, double pFrequency, double pQFactor, float pGain, double pSampleRate) : frequency(pFrequency), qFactor(pQFactor), gain(pGain), sampleRate(pSampleRate), isActive(false)
 {	
 	setBandType(pBandType);
-	setCoefficients();
 }
 
 EQBand::~EQBand()
@@ -32,6 +31,8 @@ bool EQBand::setBandType(int pBandType)
 	case 4:
 		bandType = BandType::LowShelf;
 	}
+
+	setCoefficients();
 	
 	return true;
 }
@@ -39,16 +40,30 @@ bool EQBand::setBandType(int pBandType)
 void EQBand::setFrequency(double pFrequency)
 {
 	frequency = pFrequency;
+	setCoefficients();
 }
 
 void EQBand::setQFactor(double pQFactor)
 {
 	qFactor = pQFactor;
+	setCoefficients();
 }
 
 void EQBand::setGain(float pGain)
 {
 	gain = pGain;
+	setCoefficients();
+}
+
+void EQBand::setSampleRate(double pSampleRate)
+{
+	sampleRate = pSampleRate;
+	setCoefficients();
+}
+
+void EQBand::setEnabled(bool pIsActive)
+{
+	isActive = pIsActive;
 }
 
 int EQBand::getBandType()
@@ -82,24 +97,37 @@ float EQBand::getGain()
 	return gain;
 }
 
+bool EQBand::isEnabled()
+{
+	return isActive;
+}
+
 void EQBand::process(const AudioSourceChannelInfo& bufferToFill)
 {
-	filter.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
-	filter.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
+	if (isActive)
+	{
+		filterL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
+		filterR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);
+	}
 }
 
 void EQBand::setCoefficients()
 {
 	switch (bandType) {
 	case BandType::Band:
-		filter.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, frequency, qFactor, gain));
+		filterL.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, frequency, qFactor, gain));
+		filterR.setCoefficients(IIRCoefficients::makePeakFilter(sampleRate, frequency, qFactor, gain));
 	case BandType::HighPass:
-		filter.setCoefficients(IIRCoefficients::makeHighPass(sampleRate, frequency));
+		filterL.setCoefficients(IIRCoefficients::makeHighPass(sampleRate, frequency));
+		filterR.setCoefficients(IIRCoefficients::makeHighPass(sampleRate, frequency));
 	case BandType::LowPass:
-		filter.setCoefficients(IIRCoefficients::makeLowPass(sampleRate, frequency));
+		filterL.setCoefficients(IIRCoefficients::makeLowPass(sampleRate, frequency));
+		filterR.setCoefficients(IIRCoefficients::makeLowPass(sampleRate, frequency));
 	case BandType::HighShelf:
-		filter.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, frequency, qFactor, gain));
+		filterL.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, frequency, qFactor, gain));
+		filterR.setCoefficients(IIRCoefficients::makeHighShelf(sampleRate, frequency, qFactor, gain));
 	case BandType::LowShelf:
-		filter.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, frequency, qFactor, gain));
+		filterL.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, frequency, qFactor, gain));
+		filterR.setCoefficients(IIRCoefficients::makeLowShelf(sampleRate, frequency, qFactor, gain));
 	}
 }

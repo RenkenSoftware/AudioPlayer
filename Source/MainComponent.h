@@ -81,13 +81,6 @@ private:
     void drawSpectralImage();
     void drawLine(Image* image, int fromX, int fromY, int toX, int toY, Colour colour);
 
-    IIRFilter bassEqL;
-    IIRFilter bassEqR;
-    IIRFilter midEqL;
-    IIRFilter midEqR;
-    IIRFilter highEqL;
-    IIRFilter highEqR;
-
     dsp::FFT specFFT;
     std::array<float, fftSize> fifo;
     std::array<float, fftSize * 2> fftData;
@@ -99,6 +92,10 @@ private:
     int specImageY;
 
     TrackPlayer mainPlayer{};
+
+    EQBand bassEq;
+    EQBand midEq;
+    EQBand highEq;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
