@@ -52,13 +52,7 @@ private:
     TextButton pauseButton;
     Slider volumeSlider;
     Slider transportSlider;
-    Slider bassEqSlider;
-    Slider midEqSlider;
-    Slider highEqSlider;
     Label volumeLabel;
-    Label bassLabel;
-    Label midLabel;
-    Label highLabel;
 
     void buttonClicked(Button* pButton) override;
     void sliderValueChanged(Slider* slider) override;
@@ -74,9 +68,6 @@ private:
     void freqMagButtonClicked();
     void addPlugInButtonClicked();
     void volumeSliderValueChanged();
-    void bassEqSliderValueChanged();
-    void midEqSliderValueChanged();
-    void highEqSliderValueChanged();
     void transportSliderDragEnded();
     void pushNextSampleIntoFifo(float sample) noexcept;
     void drawSpecImage();

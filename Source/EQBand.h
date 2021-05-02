@@ -2,7 +2,7 @@
 
 using namespace juce;
 
-class EQBand : public PlugIn {
+class EQBand : public PlugIn, public Slider::Listener {
 
 public:
 
@@ -21,8 +21,20 @@ public:
 
 	void process(const AudioSourceChannelInfo& bufferToFill);
 
+	void resized() override;
+
+	void sliderValueChanged(Slider* slider) override;
+
 private:
 	void setCoefficients();
+
+	Slider frequencySlider;
+	Slider qFactorSlider;
+	Slider gainSlider;
+
+	Label frequencyLabel;
+	Label qFactorLabel;
+	Label gainLabel;
 
 	IIRFilter filterL;
 	IIRFilter filterR;

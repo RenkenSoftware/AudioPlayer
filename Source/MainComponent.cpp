@@ -34,27 +34,6 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     transportSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
     transportSlider.addListener(this);
 
-    addAndMakeVisible(bassEqSlider);
-    bassEqSlider.setRange(10, 1000);
-    bassEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
-    bassEqSlider.setValue(10);
-    bassEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
-    bassEqSlider.addListener(this);
-
-    addAndMakeVisible(midEqSlider);
-    midEqSlider.setRange(0.01, 2.0);
-    midEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
-    midEqSlider.setValue(1.0);
-    midEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
-    midEqSlider.addListener(this);
-
-    addAndMakeVisible(highEqSlider);
-    highEqSlider.setRange(1000, 20000);
-    highEqSlider.setSliderStyle(Slider::SliderStyle::Rotary);
-    highEqSlider.setValue(20000);
-    highEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
-    highEqSlider.addListener(this);
-
     addAndMakeVisible(addPlugInButton);
     addPlugInButton.setButtonText("Add plugin");
     addPlugInButton.setEnabled(true);
@@ -89,18 +68,6 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     addAndMakeVisible(volumeLabel);
     volumeLabel.setText("Volume", dontSendNotification);
     volumeLabel.attachToComponent(&volumeSlider, true);
-
-    addAndMakeVisible(bassLabel);
-    bassLabel.setText("Bass", dontSendNotification);
-    bassLabel.attachToComponent(&bassEqSlider, true);
-
-    addAndMakeVisible(midLabel);
-    midLabel.setText("Mid", dontSendNotification);
-    midLabel.attachToComponent(&midEqSlider, true);
-
-    addAndMakeVisible(highLabel);
-    highLabel.setText("High", dontSendNotification);
-    highLabel.attachToComponent(&highEqSlider, true);
 
     specState = SpecState::FreqMag;
 
@@ -148,6 +115,8 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
     {
         mainPlayer.getNextAudioBlock(bufferToFill);
 
+        plugIns[0]->process(bufferToFill);
+
         const float* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
 
         for (int i = 0; i < bufferToFill.numSamples; i++)
@@ -189,9 +158,6 @@ void MainComponent::resized()
     pauseButton.setBounds(200, 560, 70, 30);
     volumeSlider.setBounds(420, 560, 370, 30);
     transportSlider.setBounds(40, 520, 750, 30);
-    bassEqSlider.setBounds(150, 10, 150, 150);
-    midEqSlider.setBounds(340, 10, 150, 150);
-    highEqSlider.setBounds(530, 10, 150, 150);
 }
 
 void MainComponent::buttonClicked(Button* pButton)
@@ -228,21 +194,6 @@ void MainComponent::sliderValueChanged(Slider* slider)
     {
         volumeSliderValueChanged();
     }
-
-    if (slider == &bassEqSlider)
-    {
-        bassEqSliderValueChanged();
-    }
-
-    if (slider == &midEqSlider)
-    {
-        midEqSliderValueChanged();
-    }
-
-    if (slider == &highEqSlider)
-    {
-        highEqSliderValueChanged();
-    }
 }
 
 void MainComponent::sliderDragEnded(Slider* slider)
@@ -274,21 +225,6 @@ void MainComponent::mouseDoubleClick(const MouseEvent& event)
     if (volumeSlider.isMouseOver())
     {
         volumeSlider.setValue(1.0);
-    }
-
-    if (highEqSlider.isMouseOver())
-    {
-        highEqSlider.setValue(1.0);
-    }
-
-    if (midEqSlider.isMouseOver())
-    {
-        midEqSlider.setValue(1.0);
-    }
-
-    if (bassEqSlider.isMouseOver())
-    {
-        bassEqSlider.setValue(1.0);
     }
 }
 
@@ -347,18 +283,6 @@ void MainComponent::addPlugInButtonClicked()
 void MainComponent::volumeSliderValueChanged()
 {
     mainPlayer.setGain(volumeSlider.getValue());
-}
-
-void MainComponent::bassEqSliderValueChanged()
-{
-}
-
-void MainComponent::midEqSliderValueChanged()
-{
-}
-
-void MainComponent::highEqSliderValueChanged()
-{
 }
 
 void MainComponent::transportSliderDragEnded()
