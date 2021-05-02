@@ -41,6 +41,8 @@ private:
     SpecState specState;
 
     double sampleRateValue;
+
+    TextButton addPlugInButton;
    
     TextButton specButton;
     TextButton freqMagButton;
@@ -70,6 +72,7 @@ private:
     void pauseButtonClicked();
     void specButtonClicked();
     void freqMagButtonClicked();
+    void addPlugInButtonClicked();
     void volumeSliderValueChanged();
     void bassEqSliderValueChanged();
     void midEqSliderValueChanged();
@@ -93,9 +96,7 @@ private:
 
     TrackPlayer mainPlayer{};
 
-    EQBand bassEq;
-    EQBand midEq;
-    EQBand highEq;
+    std::unique_ptr<PlugInWindow> plugIns[10];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

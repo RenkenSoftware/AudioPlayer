@@ -2147,6 +2147,9 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_graphics.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_extra.cpp" />
+    <ClCompile Include="Source\EQBandWindow.cpp" />
+    <ClCompile Include="Source\PlugInWindow.cpp" />
+    <ClCompile Include="Source\PlugIn.cpp" />
     <ClCompile Include="Source\EQBand.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\MainComponent.cpp" />
@@ -2942,6 +2945,9 @@
     <ClInclude Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_gui_extra\native\juce_mac_CarbonViewWrapperComponent.h" />
     <ClInclude Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_gui_extra\juce_gui_extra.h" />
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h" />
+    <ClInclude Include="Source\EQBandWindow.h" />
+    <ClInclude Include="Source\PlugInWindow.h" />
+    <ClInclude Include="Source\PlugIn.h" />
     <ClInclude Include="Source\EQBand.h" />
     <ClInclude Include="Source\MainComponent.h" />
     <ClInclude Include="Source\TrackPlayer.h" />

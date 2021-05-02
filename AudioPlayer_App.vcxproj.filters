@@ -2493,6 +2493,15 @@
     <ClCompile Include="Source\EQBand.cpp">
       <Filter>AudioPlayer\Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\PlugIn.cpp">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\PlugInWindow.cpp">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\EQBandWindow.cpp">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">
@@ -4868,10 +4877,19 @@
     <ClInclude Include="Source\TrackPlayer.h">
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
-    <ClInclude Include="UnitTests\TrackPlayerTest.h">
+    <ClInclude Include="Source\EQBand.h">
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
-    <ClInclude Include="Source\EQBand.h">
+    <ClInclude Include="UnitTests\TrackPlayerTest.h">
+      <Filter>AudioPlayer\UnitTests</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PlugIn.h">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PlugInWindow.h">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\EQBandWindow.h">
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
   </ItemGroup>

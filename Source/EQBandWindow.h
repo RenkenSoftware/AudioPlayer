@@ -2,13 +2,13 @@
 
 using namespace juce;
 
-class EQBand : public PlugIn {
+class EQBandWindow : public PlugInWindow {
 
 public:
 
-	EQBand(double pSampleRate);
+	EQBandWindow(String name, double pSampleRate);
 
-	~EQBand();
+	~EQBandWindow();
 
 	void setFrequency(double pFrequency);
 	void setQFactor(double pQFactor);
@@ -22,13 +22,6 @@ public:
 	void process(const AudioSourceChannelInfo& bufferToFill);
 
 private:
-	void setCoefficients();
 
-	IIRFilter filterL;
-	IIRFilter filterR;
-
-	float gain;
-	double frequency;
-	double qFactor;
-	double sampleRate;
+	EQBand band;
 };

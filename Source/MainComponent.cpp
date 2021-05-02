@@ -1,6 +1,9 @@
 #include <JuceHeader.h>
 #include "TrackPlayer.h"
+#include "PlugIn.h"
 #include "EQBand.h"
+#include "PlugInWindow.h"
+#include "EQBandWindow.h"
 #include "MainComponent.h"
 
 
@@ -11,10 +14,7 @@ MainComponent::MainComponent() : specFFT (fftOrder),
                                  fifoIndex(0),
                                  nextFFTBlockReady(false),
                                  specImageX(20),
-                                 specImageY(200),
-                                 bassEq(1, 200, 1.0, 1.0f),
-                                 midEq(0, 1000, 1.0, 1.0f),
-                                 highEq(2, 20000, 1.0, 1.0f)
+                                 specImageY(200)
 {
     // Make sure you set the size of the component after
     // you add any child components.
@@ -54,6 +54,11 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     highEqSlider.setValue(20000);
     highEqSlider.setTextBoxStyle(Slider::TextEntryBoxPosition::TextBoxBelow, true, 100, 30);
     highEqSlider.addListener(this);
+
+    addAndMakeVisible(addPlugInButton);
+    addPlugInButton.setButtonText("Add plugin");
+    addPlugInButton.setEnabled(true);
+    addPlugInButton.addListener(this);
 
     addAndMakeVisible(specButton);
     specButton.setButtonText("Spectogram mode");
@@ -116,8 +121,8 @@ MainComponent::MainComponent() : specFFT (fftOrder),
 MainComponent::~MainComponent()
 {
     // This shuts down the audio device and clears the audio source.
-
     shutdownAudio();
+    plugIns[0] = nullptr;
 }
 
 //==============================================================================
@@ -133,14 +138,6 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     sampleRateValue = sampleRate;
 
     mainPlayer.prepareToPlay(samplesPerBlockExpected, sampleRate);
-
-    bassEq.setSampleRate(sampleRate);
-    midEq.setSampleRate(sampleRate);
-    highEq.setSampleRate(sampleRate);
-
-    bassEq.setEnabled(true);
-    midEq.setEnabled(true);
-    highEq.setEnabled(true);
 }
 
 void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
@@ -150,10 +147,6 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
     if (mainPlayer.isPlaying())
     {
         mainPlayer.getNextAudioBlock(bufferToFill);
-
-        bassEq.process(bufferToFill);
-        midEq.process(bufferToFill);
-        highEq.process(bufferToFill);
 
         const float* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
 
@@ -187,6 +180,7 @@ void MainComponent::resized()
     // If you add any child components, this is where you should
     // update their positions.
     
+    addPlugInButton.setBounds(700, 90, 90, 30);
     specButton.setBounds(700, 10, 90, 30);
     freqMagButton.setBounds(700, 50, 90, 30);
     loadButton.setBounds(10, 10, 100, 30);
@@ -221,6 +215,10 @@ void MainComponent::buttonClicked(Button* pButton)
     else if (pButton == &freqMagButton)
     {
         freqMagButtonClicked();
+    }
+    else if (pButton == &addPlugInButton)
+    {
+        addPlugInButtonClicked();
     }
 }
 
@@ -341,6 +339,11 @@ void MainComponent::freqMagButtonClicked()
     specState = SpecState::FreqMag;
 }
 
+void MainComponent::addPlugInButtonClicked()
+{
+    plugIns[0].reset(new EQBandWindow("New EQ", sampleRateValue));
+}
+
 void MainComponent::volumeSliderValueChanged()
 {
     mainPlayer.setGain(volumeSlider.getValue());
@@ -348,17 +351,14 @@ void MainComponent::volumeSliderValueChanged()
 
 void MainComponent::bassEqSliderValueChanged()
 {
-    bassEq.setFrequency(bassEqSlider.getValue());
 }
 
 void MainComponent::midEqSliderValueChanged()
 {
-    midEq.setGain(midEqSlider.getValue());
 }
 
 void MainComponent::highEqSliderValueChanged()
 {
-    highEq.setFrequency(highEqSlider.getValue());
 }
 
 void MainComponent::transportSliderDragEnded()
