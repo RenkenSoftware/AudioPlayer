@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 
 using namespace juce;
 
@@ -87,7 +88,8 @@ private:
 
     TrackPlayer mainPlayer{};
 
-    std::unique_ptr<PlugInWindow> plugIns[10];
+    std::array<std::optional<PlugInWindow*>, 10> plugIns;
+    std::array<bool, 10> plugInsActive;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

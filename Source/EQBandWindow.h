@@ -8,7 +8,7 @@ public:
 
 	EQBandWindow(String name, double pSampleRate);
 
-	~EQBandWindow();
+	~EQBandWindow() override;
 
 	void setFrequency(double pFrequency);
 	void setQFactor(double pQFactor);
@@ -23,5 +23,5 @@ public:
 
 private:
 
-	EQBand band;
+	EQBand* band;
 };

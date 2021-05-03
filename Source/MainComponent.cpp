@@ -19,6 +19,8 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     // Make sure you set the size of the component after
     // you add any child components.
     
+    plugInsActive[0] = false;
+
     addMouseListener(this, true);
 
     setSize (800, 600);
@@ -88,8 +90,15 @@ MainComponent::MainComponent() : specFFT (fftOrder),
 MainComponent::~MainComponent()
 {
     // This shuts down the audio device and clears the audio source.
+    Timer::stopTimer();
+
     shutdownAudio();
-    plugIns[0] = nullptr;
+
+    if (plugIns[0].has_value())
+    {
+        delete plugIns[0].value();
+        plugIns[0].reset();
+    }
 }
 
 //==============================================================================
@@ -105,17 +114,22 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     sampleRateValue = sampleRate;
 
     mainPlayer.prepareToPlay(samplesPerBlockExpected, sampleRate);
+
+    Timer::startTimer(10);
 }
 
 void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill)
 {
     bufferToFill.clearActiveBufferRegion();
-    
+
     if (mainPlayer.isPlaying())
     {
         mainPlayer.getNextAudioBlock(bufferToFill);
-
-        plugIns[0]->process(bufferToFill);
+        
+        if (plugIns[0].has_value() && plugInsActive[0] == true)
+        {
+            plugIns[0].value()->process(bufferToFill);
+        }
 
         const float* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
 
@@ -206,17 +220,30 @@ void MainComponent::sliderDragEnded(Slider* slider)
 
 void MainComponent::timerCallback()
 {
-    if (!transportSlider.isMouseButtonDown())
+    if (mainPlayer.isPlaying())
     {
-        transportSlider.setValue(mainPlayer.getTransportPosition());
-    }
+        if (!transportSlider.isMouseButtonDown())
+        {
+            transportSlider.setValue(mainPlayer.getTransportPosition());
+        }
 
-    if (nextFFTBlockReady)
+        if (nextFFTBlockReady)
+        {
+            specFFT.performFrequencyOnlyForwardTransform(fftData.data());
+            nextFFTBlockReady = false;
+            drawSpecImage();
+            repaint();
+        }
+    }
+    
+    if (plugIns[0].has_value())
     {
-        specFFT.performFrequencyOnlyForwardTransform(fftData.data());
-        nextFFTBlockReady = false;
-        drawSpecImage();
-        repaint();
+        if (plugIns[0].value()->shouldBeDeleted())
+        {
+            plugInsActive[0] = false;
+            delete plugIns[0].value();
+            plugIns[0].reset();
+        }
     }
 }
 
@@ -245,20 +272,17 @@ void MainComponent::loadButtonClicked()
 void MainComponent::playButtonClicked()
 {
     mainPlayer.play();
-    Timer::startTimer(10);
 }
 
 void MainComponent::stopButtonClicked()
 {
     mainPlayer.stop();
-    Timer::stopTimer();
     transportSlider.setValue(0.0);
 }
 
 void MainComponent::pauseButtonClicked()
 {
     mainPlayer.pause();
-    Timer::stopTimer();
 }
 
 void MainComponent::specButtonClicked()
@@ -277,7 +301,8 @@ void MainComponent::freqMagButtonClicked()
 
 void MainComponent::addPlugInButtonClicked()
 {
-    plugIns[0].reset(new EQBandWindow("New EQ", sampleRateValue));
+    plugIns[0] = new EQBandWindow("New EQ", sampleRateValue);
+    plugInsActive[0] = true;
 }
 
 void MainComponent::volumeSliderValueChanged()
