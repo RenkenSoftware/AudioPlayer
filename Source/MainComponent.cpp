@@ -19,7 +19,10 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     // Make sure you set the size of the component after
     // you add any child components.
     
-    plugInsActive[0] = false;
+    for (int i = 0; i < 10; i++)
+    {
+        plugInsActive[i] = false;
+    }
 
     addMouseListener(this, true);
 
@@ -94,10 +97,13 @@ MainComponent::~MainComponent()
 
     shutdownAudio();
 
-    if (plugIns[0].has_value())
+    for (int i = 0; i < 10; i++)
     {
-        delete plugIns[0].value();
-        plugIns[0].reset();
+        if (plugInsActive[i] == true)
+        {
+            delete plugIns[i].value();
+            plugIns[i].reset();
+        }
     }
 }
 
@@ -125,10 +131,13 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
     if (mainPlayer.isPlaying())
     {
         mainPlayer.getNextAudioBlock(bufferToFill);
-        
-        if (plugIns[0].has_value() && plugInsActive[0] == true)
+
+        for (int i = 0; i < 10; i++)
         {
-            plugIns[0].value()->process(bufferToFill);
+            if (plugInsActive[i] == true)
+            {
+                plugIns[i].value()->process(bufferToFill);
+            }
         }
 
         const float* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
@@ -235,14 +244,17 @@ void MainComponent::timerCallback()
             repaint();
         }
     }
-    
-    if (plugIns[0].has_value())
+
+    for (int i = 0; i < 10; i++)
     {
-        if (plugIns[0].value()->shouldBeDeleted())
+        if (plugInsActive[i] == true)
         {
-            plugInsActive[0] = false;
-            delete plugIns[0].value();
-            plugIns[0].reset();
+            if (plugIns[i].value()->shouldBeDeleted())
+            {
+                plugInsActive[i] = false;
+                delete plugIns[i].value();
+                plugIns[i].reset();
+            }
         }
     }
 }
@@ -301,8 +313,15 @@ void MainComponent::freqMagButtonClicked()
 
 void MainComponent::addPlugInButtonClicked()
 {
-    plugIns[0] = new EQBandWindow("New EQ", sampleRateValue);
-    plugInsActive[0] = true;
+    for (int i = 0; i < 10; i++)
+    {
+        if (plugInsActive[i] == false)
+        {
+            plugIns[i] = new EQBandWindow("New Plugin", sampleRateValue);
+            plugInsActive[i] = true;
+            break;
+        }
+    }
 }
 
 void MainComponent::volumeSliderValueChanged()
