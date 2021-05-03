@@ -6,8 +6,10 @@
 
 EQBandWindow::EQBandWindow(String name, double pSampleRate) : PlugInWindow(name)
 {
+	centreWithSize(560, 200);
 	band = new EQBand(pSampleRate);
 	setContentOwned(band, true);
+	setResizable(false, true);
 }
 
 EQBandWindow::~EQBandWindow()
@@ -52,5 +54,5 @@ float EQBandWindow::getGain()
 
 void EQBandWindow::process(const AudioSourceChannelInfo& bufferToFill)
 {
-	band->process(bufferToFill);
+	band->processNextBlock(bufferToFill);
 }

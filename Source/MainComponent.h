@@ -28,25 +28,13 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
-    static constexpr auto fftOrder = 10;
-    static constexpr auto fftSize = 1 << fftOrder;
-    static constexpr auto scopeSize = 512;
-
 private:
-
-    enum class SpecState {
-        Spectrogram,
-        FreqMag
-    };
-
-    SpecState specState;
 
     double sampleRateValue;
 
-    TextButton addPlugInButton;
-   
-    TextButton specButton;
-    TextButton freqMagButton;
+    TextButton addEQBandButton;
+    TextButton addAnalyserButton;
+
     TextButton loadButton;
     TextButton playButton;
     TextButton stopButton;
@@ -65,31 +53,19 @@ private:
     void playButtonClicked();
     void stopButtonClicked();
     void pauseButtonClicked();
-    void specButtonClicked();
-    void freqMagButtonClicked();
-    void addPlugInButtonClicked();
+    void addEQBandButtonClicked();
+    void addAnalyserButtonClicked();
     void volumeSliderValueChanged();
     void transportSliderDragEnded();
-    void pushNextSampleIntoFifo(float sample) noexcept;
-    void drawSpecImage();
-    void drawFreqMagImage();
-    void drawSpectralImage();
-    void drawLine(Image* image, int fromX, int fromY, int toX, int toY, Colour colour);
 
-    dsp::FFT specFFT;
-    std::array<float, fftSize> fifo;
-    std::array<float, fftSize * 2> fftData;
-    std::array<float, scopeSize> scopeData;
-    int fifoIndex;
-    bool nextFFTBlockReady;
-    Image specImage;
-    int specImageX;
-    int specImageY;
+    void plugInSelected();
 
     TrackPlayer mainPlayer{};
 
     std::array<std::optional<PlugInWindow*>, 10> plugIns;
     std::array<bool, 10> plugInsActive;
+
+    ComboBox plugInList;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

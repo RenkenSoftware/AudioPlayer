@@ -2154,6 +2154,8 @@
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\MainComponent.cpp" />
     <ClCompile Include="Source\TrackPlayer.cpp" />
+    <ClCompile Include="Source\SpectralAnalyser.cpp" />
+    <ClCompile Include="Source\SpectralAnalyserWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h" />
@@ -2951,6 +2953,8 @@
     <ClInclude Include="Source\EQBand.h" />
     <ClInclude Include="Source\MainComponent.h" />
     <ClInclude Include="Source\TrackPlayer.h" />
+    <ClInclude Include="Source\SpectralAnalyser.h" />
+    <ClInclude Include="Source\SpectralAnalyserWindow.h" />
     <ClInclude Include="UnitTests\TrackPlayerTest.h" />
   </ItemGroup>
   <ItemGroup>

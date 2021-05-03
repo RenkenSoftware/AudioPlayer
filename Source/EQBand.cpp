@@ -4,6 +4,8 @@
 
 EQBand::EQBand(double pSampleRate) : frequency(1000), qFactor(1.0), gain(1.0f), sampleRate(pSampleRate)
 {
+	setSize(560, 200);
+
 	setCoefficients();
 
 	addAndMakeVisible(frequencySlider);
@@ -83,7 +85,7 @@ float EQBand::getGain()
 	return gain;
 }
 
-void EQBand::process(const AudioSourceChannelInfo& bufferToFill)
+void EQBand::processNextBlock(const AudioSourceChannelInfo& bufferToFill)
 {
 	filterL.processSamples(bufferToFill.buffer->getWritePointer(0), bufferToFill.numSamples);
 	filterR.processSamples(bufferToFill.buffer->getWritePointer(1), bufferToFill.numSamples);

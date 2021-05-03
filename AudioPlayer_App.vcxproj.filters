@@ -2502,6 +2502,12 @@
     <ClCompile Include="Source\EQBandWindow.cpp">
       <Filter>AudioPlayer\Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\SpectralAnalyserWindow.cpp">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SpectralAnalyser.cpp">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\..\Program Files\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">
@@ -4890,6 +4896,12 @@
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
     <ClInclude Include="Source\EQBandWindow.h">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpectralAnalyserWindow.h">
+      <Filter>AudioPlayer\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SpectralAnalyser.h">
       <Filter>AudioPlayer\Source</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,23 +2,16 @@
 #include "TrackPlayer.h"
 #include "PlugIn.h"
 #include "EQBand.h"
+#include "SpectralAnalyser.h"
 #include "PlugInWindow.h"
 #include "EQBandWindow.h"
+#include "SpectralAnalyserWindow.h"
 #include "MainComponent.h"
 
 
 //==============================================================================
-MainComponent::MainComponent() : specFFT (fftOrder),
-                                 specImage(Image::RGB, 760, 300, true),
-                                 mainPlayer(),
-                                 fifoIndex(0),
-                                 nextFFTBlockReady(false),
-                                 specImageX(20),
-                                 specImageY(200)
+MainComponent::MainComponent() : mainPlayer()
 {
-    // Make sure you set the size of the component after
-    // you add any child components.
-    
     for (int i = 0; i < 10; i++)
     {
         plugInsActive[i] = false;
@@ -39,20 +32,15 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     transportSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
     transportSlider.addListener(this);
 
-    addAndMakeVisible(addPlugInButton);
-    addPlugInButton.setButtonText("Add plugin");
-    addPlugInButton.setEnabled(true);
-    addPlugInButton.addListener(this);
+    addAndMakeVisible(addEQBandButton);
+    addEQBandButton.setButtonText("Add EQ Band");
+    addEQBandButton.setEnabled(true);
+    addEQBandButton.addListener(this);
 
-    addAndMakeVisible(specButton);
-    specButton.setButtonText("Spectogram mode");
-    specButton.setEnabled(true);
-    specButton.addListener(this);
-
-    addAndMakeVisible(freqMagButton);
-    freqMagButton.setButtonText("Frequency-magnitude mode");
-    freqMagButton.setEnabled(false);
-    freqMagButton.addListener(this);
+    addAndMakeVisible(addAnalyserButton);
+    addAnalyserButton.setButtonText("Add Analyser");
+    addAnalyserButton.setEnabled(true);
+    addAnalyserButton.addListener(this);
 
     addAndMakeVisible(loadButton);
     loadButton.setButtonText("Load Audio File");
@@ -74,7 +62,9 @@ MainComponent::MainComponent() : specFFT (fftOrder),
     volumeLabel.setText("Volume", dontSendNotification);
     volumeLabel.attachToComponent(&volumeSlider, true);
 
-    specState = SpecState::FreqMag;
+    addAndMakeVisible(plugInList);
+    plugInList.setName("PlugIns");
+    plugInList.onChange = [this] { plugInSelected(); };
 
     // Some platforms require permissions to open input channels so request that here
     if (juce::RuntimePermissions::isRequired (juce::RuntimePermissions::recordAudio)
@@ -139,13 +129,6 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
                 plugIns[i].value()->process(bufferToFill);
             }
         }
-
-        const float* channelData = bufferToFill.buffer->getReadPointer(0, bufferToFill.startSample);
-
-        for (int i = 0; i < bufferToFill.numSamples; i++)
-        {
-            pushNextSampleIntoFifo(channelData[i]);
-        }
     }
 }
 
@@ -163,7 +146,6 @@ void MainComponent::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
     g.setOpacity(1.0f);
-    g.drawImageAt(specImage, specImageX, specImageY);
 }
 
 void MainComponent::resized()
@@ -172,15 +154,16 @@ void MainComponent::resized()
     // If you add any child components, this is where you should
     // update their positions.
     
-    addPlugInButton.setBounds(700, 90, 90, 30);
-    specButton.setBounds(700, 10, 90, 30);
-    freqMagButton.setBounds(700, 50, 90, 30);
+    addEQBandButton.setBounds(700, 90, 90, 30);
+    addAnalyserButton.setBounds(700, 130, 90, 30);
     loadButton.setBounds(10, 10, 100, 30);
     playButton.setBounds(120, 560, 70, 30);
     stopButton.setBounds(280, 560, 70, 30);
     pauseButton.setBounds(200, 560, 70, 30);
     volumeSlider.setBounds(420, 560, 370, 30);
     transportSlider.setBounds(40, 520, 750, 30);
+
+    plugInList.setBounds(150, 10, 200, 20);
 }
 
 void MainComponent::buttonClicked(Button* pButton)
@@ -197,17 +180,13 @@ void MainComponent::buttonClicked(Button* pButton)
     else if (pButton == &pauseButton) {
         pauseButtonClicked();
     }
-    else if (pButton == &specButton)
+    else if (pButton == &addEQBandButton)
     {
-        specButtonClicked();
+        addEQBandButtonClicked();
     }
-    else if (pButton == &freqMagButton)
+    else if (pButton == &addAnalyserButton)
     {
-        freqMagButtonClicked();
-    }
-    else if (pButton == &addPlugInButton)
-    {
-        addPlugInButtonClicked();
+        addAnalyserButtonClicked();
     }
 }
 
@@ -235,14 +214,6 @@ void MainComponent::timerCallback()
         {
             transportSlider.setValue(mainPlayer.getTransportPosition());
         }
-
-        if (nextFFTBlockReady)
-        {
-            specFFT.performFrequencyOnlyForwardTransform(fftData.data());
-            nextFFTBlockReady = false;
-            drawSpecImage();
-            repaint();
-        }
     }
 
     for (int i = 0; i < 10; i++)
@@ -254,6 +225,16 @@ void MainComponent::timerCallback()
                 plugInsActive[i] = false;
                 delete plugIns[i].value();
                 plugIns[i].reset();
+
+                plugInList.clear();
+
+                for (int i = 0; i < 10; i++)
+                {
+                    if (plugInsActive[i] == true)
+                    {
+                        plugInList.addItem(plugIns[i].value()->getName(), i + 1);
+                    }
+                }
             }
         }
     }
@@ -297,28 +278,29 @@ void MainComponent::pauseButtonClicked()
     mainPlayer.pause();
 }
 
-void MainComponent::specButtonClicked()
-{
-    freqMagButton.setEnabled(true);
-    specButton.setEnabled(false);
-    specState = SpecState::Spectrogram;
-}
-
-void MainComponent::freqMagButtonClicked()
-{
-    freqMagButton.setEnabled(false);
-    specButton.setEnabled(true);
-    specState = SpecState::FreqMag;
-}
-
-void MainComponent::addPlugInButtonClicked()
+void MainComponent::addEQBandButtonClicked()
 {
     for (int i = 0; i < 10; i++)
     {
         if (plugInsActive[i] == false)
         {
-            plugIns[i] = new EQBandWindow("New Plugin", sampleRateValue);
+            plugIns[i] = new EQBandWindow("EQ Band", sampleRateValue);
             plugInsActive[i] = true;
+            plugInList.addItem(plugIns[i].value()->getName(), i + 1);
+            break;
+        }
+    }
+}
+
+void MainComponent::addAnalyserButtonClicked()
+{
+    for (int i = 0; i < 10; i++)
+    {
+        if (plugInsActive[i] == false)
+        {
+            plugIns[i] = new SpectralAnalyserWindow("Spectral Analyser");
+            plugInsActive[i] = true;
+            plugInList.addItem(plugIns[i].value()->getName(), i + 1);
             break;
         }
     }
@@ -334,84 +316,7 @@ void MainComponent::transportSliderDragEnded()
     mainPlayer.setTransportPosition(transportSlider.getValue());
 }
 
-void MainComponent::pushNextSampleIntoFifo(float sample) noexcept
+void MainComponent::plugInSelected()
 {
-    if (fifoIndex == fftSize)
-    {
-        if (!nextFFTBlockReady)
-        {
-            std::fill(fftData.begin(), fftData.end(), 0.0f);
-            std::copy(fifo.begin(), fifo.end(), fftData.begin());
-            nextFFTBlockReady = true;
-        }
-
-        fifoIndex = 0;
-    }
-
-    fifo[(size_t)fifoIndex++] = sample;
-}
-
-void MainComponent::drawSpecImage()
-{
-
-    if (specState == SpecState::FreqMag)
-    {
-        drawFreqMagImage();
-    }
-    else
-    {
-        drawSpectralImage();
-    }
-}
-
-void MainComponent::drawFreqMagImage()
-{
-    specImage.clear(specImage.getBounds(), Colour::greyLevel(0.0f));
-
-    auto mindB = -100.0f;
-    auto maxdB = 0.0f;
-
-    for (int i = 0; i < scopeSize; ++i)
-    {
-        auto skewedProportionX = 1.0f - std::exp(std::log(1.0f - (float)i / (float)scopeSize) * 0.2f);
-        auto fftDataIndex = juce::jlimit(0, fftSize / 2, (int)(skewedProportionX * (float)fftSize * 0.5f));
-        auto level = juce::jmap(juce::jlimit(mindB, maxdB, juce::Decibels::gainToDecibels(fftData[fftDataIndex])
-            - juce::Decibels::gainToDecibels((float)fftSize)),
-            mindB, maxdB, 0.0f, 1.0f);
-
-        scopeData[i] = level;
-    }
-
-    for (int i = 0; i < scopeSize - 1; ++i)
-    {
-        drawLine(&specImage, juce::jmap(i, 0, scopeSize - 1, 0, specImage.getWidth()), juce::jmap(scopeData[i], 0.0f, 1.0f, (float)specImage.getHeight(), 0.0f), juce::jmap(i + 1, 0, scopeSize - 1, 0, specImage.getWidth()), juce::jmap(scopeData[i + 1], 0.0f, 1.0f, (float)specImage.getHeight(), 0.0f), Colour::greyLevel(1.0f));
-    }
-}
-
-void MainComponent::drawSpectralImage()
-{
-    auto rightHandEdge = specImage.getWidth() - 1;
-    auto imageHeight = specImage.getHeight();
-
-    specImage.moveImageSection(0, 0, 1, 0, rightHandEdge, imageHeight);
-
-    auto maxLevel = juce::FloatVectorOperations::findMinAndMax(fftData.data(), fftSize / 2);
-
-    for (auto y = 1; y < imageHeight; ++y)
-    {
-        auto skewedProportionY = 1.0f - std::exp(std::log((float)y / (float)imageHeight) * 0.2f);
-        auto fftDataIndex = (size_t)juce::jlimit(0, fftSize / 2, (int)(skewedProportionY * fftSize / 2));
-        auto level = juce::jmap(fftData[fftDataIndex], 0.0f, juce::jmax(maxLevel.getEnd(), 1e-5f), 0.0f, 1.0f);
-
-        specImage.setPixelAt(rightHandEdge, y, juce::Colour::fromHSV(level, 1.0f, level, 1.0f));
-    }
-}
-
-void MainComponent::drawLine(Image* image, int fromX, int fromY, int toX, int toY, Colour colour)
-{
-    for (int i = 0; i <= 100; i++)
-    {
-        float lambda = ((float)i / 100.0f);
-        image->setPixelAt((int)((lambda * (float)fromX) + ((1.0f - lambda) * (float)toX)), (int)((lambda * (float)fromY) + ((1.0f - lambda) * (float)toY)), colour);
-    }
+    plugIns[plugInList.getSelectedId() - 1].value()->setVisible(true);
 }

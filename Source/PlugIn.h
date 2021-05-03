@@ -9,7 +9,7 @@ public:
 
 	~PlugIn();
 
-	void processNextBlock(const AudioSourceChannelInfo& bufferToFill);
+	virtual void processNextBlock(const AudioSourceChannelInfo& bufferToFill);
 
 private:
 

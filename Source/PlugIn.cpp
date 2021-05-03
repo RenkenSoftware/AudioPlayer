@@ -3,7 +3,6 @@
 
 PlugIn::PlugIn()
 {
-	setSize(560, 200);
 }
 
 PlugIn::~PlugIn()

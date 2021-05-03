@@ -1,9 +1,8 @@
 #include <JuceHeader.h>
 #include "PlugInWindow.h"
 
-PlugInWindow::PlugInWindow(String name) : DocumentWindow(name, Colours::lightgrey, DocumentWindow::allButtons), deletionFlag(false)
+PlugInWindow::PlugInWindow(String name) : DocumentWindow(name, Colours::lightgrey, DocumentWindow::closeButton), deletionFlag(false)
 {
-    centreWithSize(560, 200);
     setVisible(true);
 }
 
@@ -13,7 +12,7 @@ PlugInWindow::~PlugInWindow()
 
 void PlugInWindow::closeButtonPressed()
 {
-    deletionFlag = true;
+    setVisible(false);
 }
 
 bool PlugInWindow::shouldBeDeleted()

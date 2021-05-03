@@ -19,7 +19,7 @@ public:
 	double getQFactor();
 	float getGain();
 
-	void process(const AudioSourceChannelInfo& bufferToFill);
+	void processNextBlock(const AudioSourceChannelInfo& bufferToFill) override;
 
 	void resized() override;
 
